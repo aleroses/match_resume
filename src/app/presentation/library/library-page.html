@@ -1,0 +1,51 @@
+<main>
+  <header>
+    <h1>Gestor de CV</h1>
+    <p>
+      Los datos se quedan en este navegador. Para respaldarlos, descarga el JSON y el PDF y súbelos a
+      tu repositorio de GitHub.
+    </p>
+  </header>
+
+  @if (store.error()) {
+    <p class="error" role="alert">{{ store.error() }}</p>
+  }
+
+  <section>
+    <h2>Versiones</h2>
+    <ul class="versions">
+      @for (doc of store.documents(); track doc.id) {
+        <li>
+          <a [routerLink]="['/cv', doc.id]">{{ doc.title }}</a>
+          <span>{{ doc.kind === 'master' ? 'Maestro' : 'Derivada' }}</span>
+          <time [attr.datetime]="doc.updatedAt">{{ formatTimestamp(doc.updatedAt) }}</time>
+          @if (store.isStale(doc)) {
+            <span>El maestro cambió después de esta copia.</span>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section>
+    <h2>Nueva versión</h2>
+    <p>Crea una copia del maestro para una oferta. La copia no se vuelve a sincronizar sola.</p>
+    <label>
+      Nombre de la versión
+      <input [value]="newTitle()" (input)="newTitle.set(text($event))" [disabled]="store.busy()" />
+    </label>
+    <button type="button" (click)="create()" [disabled]="store.busy()">Crear copia del maestro</button>
+  </section>
+
+  <section>
+    <h2>Respaldo</h2>
+    <div class="row">
+      <button type="button" (click)="store.downloadBackup()" [disabled]="store.busy()">Descargar JSON</button>
+      <label class="file">
+        Importar JSON
+        <input type="file" accept="application/json,.json" (change)="importFile($event)" [disabled]="store.busy()" />
+      </label>
+    </div>
+    <p>Importar reemplaza todas las versiones guardadas en este navegador.</p>
+  </section>
+</main>

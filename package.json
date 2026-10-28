@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "lint": "eslint src",
+    "check:pdf": "node scripts/check-pdf.mjs"
   },
   "private": true,
   "packageManager": "npm@11.6.2",
@@ -17,16 +19,23 @@
     "@angular/forms": "^22.2.0",
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
+    "dexie": "^4.4.7",
+    "pdfjs-dist": "^6.4.299",
+    "pdfmake": "^0.3.13",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@angular/build": "^22.2.4",
     "@angular/cli": "^22.2.4",
     "@angular/compiler-cli": "^22.2.0",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
     "jsdom": "^30.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.0"
   }
 }

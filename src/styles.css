@@ -1,1 +1,104 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  color-scheme: light dark;
+  font-family: 'Segoe UI', 'Liberation Sans', sans-serif;
+  line-height: 1.45;
+}
+
+body {
+  margin: 0;
+  background: light-dark(#f6f5f2, #1b1b1b);
+  color: light-dark(#1c1c1c, #f3f3f1);
+}
+
+main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+h1,
+h2 {
+  line-height: 1.2;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.75rem 0;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid light-dark(#8d8d8d, #666);
+  border-radius: 4px;
+  background: light-dark(#fff, #111);
+}
+
+textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+button,
+.file {
+  padding: 0.45rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid light-dark(#1c1c1c, #ddd);
+  background: light-dark(#1c1c1c, #f3f3f1);
+  color: light-dark(#fff, #1c1c1c);
+}
+
+.file input {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.row,
+.versions li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.versions {
+  padding: 0;
+  list-style: none;
+}
+
+.versions li {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid light-dark(#ddd, #333);
+}
+
+.card {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid light-dark(#ccc, #444);
+  border-radius: 6px;
+}
+
+.error {
+  color: light-dark(#8d1d1d, #ffb4b4);
+}
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+a {
+  color: light-dark(#0b3a82, #9dc1ff);
+}

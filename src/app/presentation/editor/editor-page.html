@@ -1,0 +1,197 @@
+<main>
+  <p><a routerLink="/">Volver a versiones</a></p>
+
+  @if (store.error()) {
+    <p class="error" role="alert">{{ store.error() }}</p>
+  }
+
+  @if (store.draft(); as doc) {
+    <fieldset [disabled]="store.busy()">
+      <p class="meta">
+        {{ doc.kind === 'master' ? 'CV maestro' : 'Copia de una oferta' }}
+        · última modificación del contenido: {{ formatTimestamp(doc.updatedAt) }}
+      </p>
+      @if (doc.kind === 'master') {
+        <p>Este es el CV maestro. Las copias no se actualizan solas.</p>
+      } @else if (store.isStale(doc)) {
+        <p>El maestro cambió después de crear esta copia. Esta versión no se ha tocado.</p>
+      }
+
+      <label>
+        Nombre de la versión
+        <input [(ngModel)]="doc.title" [ngModelOptions]="{ standalone: true }" />
+      </label>
+      <label>
+        Idioma de los encabezados del PDF
+        <select [ngModel]="doc.locale" (ngModelChange)="store.setLocale($event)" [ngModelOptions]="{ standalone: true }">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+
+      @if (doc.kind === 'derived' && doc.target) {
+        <section>
+          <h2>Oferta</h2>
+          <p>Pega el texto de la oferta. La aplicación no redacta tu CV a partir de él.</p>
+          <label>
+            Empresa
+            <input [(ngModel)]="doc.target.company" [ngModelOptions]="{ standalone: true }" />
+          </label>
+          <label>
+            Puesto
+            <input [(ngModel)]="doc.target.role" [ngModelOptions]="{ standalone: true }" />
+          </label>
+          <label>
+            Texto de la oferta
+            <textarea [(ngModel)]="doc.target.jobText" [ngModelOptions]="{ standalone: true }"></textarea>
+          </label>
+        </section>
+      }
+
+      <section>
+        <h2>Identidad</h2>
+        <label>Nombre <input [(ngModel)]="doc.content.identity.fullName" autocomplete="name" [ngModelOptions]="{ standalone: true }" /></label>
+        <label>Titular <input [(ngModel)]="doc.content.identity.headline" [ngModelOptions]="{ standalone: true }" /></label>
+        <label>Correo <input type="email" [(ngModel)]="doc.content.identity.email" autocomplete="email" [ngModelOptions]="{ standalone: true }" /></label>
+        <label>Teléfono <input [(ngModel)]="doc.content.identity.phone" autocomplete="tel" [ngModelOptions]="{ standalone: true }" /></label>
+        <label>Ubicación <input [(ngModel)]="doc.content.identity.location" [ngModelOptions]="{ standalone: true }" /></label>
+        @for (link of doc.content.identity.links; track $index) {
+          <div class="card">
+            <label>Texto del enlace <input [(ngModel)]="link.label" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>URL <input [(ngModel)]="link.url" [ngModelOptions]="{ standalone: true }" /></label>
+            <button type="button" (click)="store.removeLink($index)">Quitar enlace</button>
+          </div>
+        }
+        <button type="button" (click)="store.addLink()">Añadir enlace</button>
+      </section>
+
+      <section>
+        <h2>Resumen</h2>
+        <textarea [(ngModel)]="doc.content.summary" [ngModelOptions]="{ standalone: true }"></textarea>
+      </section>
+
+      <section>
+        <h2>Experiencia</h2>
+        @for (item of doc.content.experience; track item.id) {
+          <div class="card">
+            <label>Puesto <input [(ngModel)]="item.role" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>Organización <input [(ngModel)]="item.organization" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>Lugar <input [(ngModel)]="item.location" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>Inicio <input type="month" [(ngModel)]="item.start" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>
+              <input type="checkbox" [checked]="item.end === null" (change)="item.end = checked($event) ? null : ''" />
+              Trabajo actual
+            </label>
+            @if (item.end !== null) {
+              <label>Fin <input type="month" [(ngModel)]="item.end" [ngModelOptions]="{ standalone: true }" /></label>
+            }
+            <label>
+              Logros, uno por línea
+              <textarea [ngModel]="joinLines(item.bullets)" (ngModelChange)="item.bullets = lines($event)" [ngModelOptions]="{ standalone: true }"></textarea>
+            </label>
+            <button type="button" (click)="store.removeExperience(item.id)">Quitar experiencia</button>
+          </div>
+        }
+        <button type="button" (click)="store.addExperience()">Añadir experiencia</button>
+      </section>
+
+      <section>
+        <h2>Educación</h2>
+        @for (item of doc.content.education; track item.id) {
+          <div class="card">
+            <label>Título <input [(ngModel)]="item.degree" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>Centro <input [(ngModel)]="item.institution" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>Inicio <input type="month" [(ngModel)]="item.start" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>
+              <input type="checkbox" [checked]="item.end === null" (change)="item.end = checked($event) ? null : ''" />
+              En curso
+            </label>
+            @if (item.end !== null) {
+              <label>Fin <input type="month" [(ngModel)]="item.end" [ngModelOptions]="{ standalone: true }" /></label>
+            }
+            <label>Notas <textarea [(ngModel)]="item.notes" [ngModelOptions]="{ standalone: true }"></textarea></label>
+            <button type="button" (click)="store.removeEducation(item.id)">Quitar educación</button>
+          </div>
+        }
+        <button type="button" (click)="store.addEducation()">Añadir educación</button>
+      </section>
+
+      <section>
+        <h2>Habilidades</h2>
+        <p>Escribe solo habilidades que ya tengas. La aplicación no las propone.</p>
+        @for (group of doc.content.skills; track group.id) {
+          <div class="card">
+            <label>Grupo <input [(ngModel)]="group.label" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>
+              Elementos, uno por línea
+              <textarea [ngModel]="joinLines(group.items)" (ngModelChange)="group.items = lines($event)" [ngModelOptions]="{ standalone: true }"></textarea>
+            </label>
+            <button type="button" (click)="store.removeSkillGroup(group.id)">Quitar grupo</button>
+          </div>
+        }
+        <button type="button" (click)="store.addSkillGroup()">Añadir grupo</button>
+      </section>
+
+      <section>
+        <h2>Idiomas</h2>
+        @for (item of doc.content.languages; track item.id) {
+          <div class="card">
+            <label>Idioma <input [(ngModel)]="item.name" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>Nivel, con tus palabras <input [(ngModel)]="item.level" [ngModelOptions]="{ standalone: true }" /></label>
+            <button type="button" (click)="store.removeLanguage(item.id)">Quitar idioma</button>
+          </div>
+        }
+        <button type="button" (click)="store.addLanguage()">Añadir idioma</button>
+      </section>
+
+      <section>
+        <h2>Proyectos</h2>
+        @for (item of doc.content.projects; track item.id) {
+          <div class="card">
+            <label>Nombre <input [(ngModel)]="item.name" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>URL <input [(ngModel)]="item.url" [ngModelOptions]="{ standalone: true }" /></label>
+            <label>Resumen <textarea [(ngModel)]="item.summary" [ngModelOptions]="{ standalone: true }"></textarea></label>
+            <label>
+              Detalles, uno por línea
+              <textarea [ngModel]="joinLines(item.bullets)" (ngModelChange)="item.bullets = lines($event)" [ngModelOptions]="{ standalone: true }"></textarea>
+            </label>
+            <button type="button" (click)="store.removeProject(item.id)">Quitar proyecto</button>
+          </div>
+        }
+        <button type="button" (click)="store.addProject()">Añadir proyecto</button>
+      </section>
+
+      <div class="row">
+        <button type="button" (click)="store.save()">Guardar</button>
+        <button type="button" (click)="store.downloadPdf()">Descargar PDF</button>
+        <button type="button" (click)="store.audit()">Revisar texto del PDF</button>
+        @if (doc.kind === 'derived') {
+          @if (!confirmDelete()) {
+            <button type="button" (click)="confirmDelete.set(true)">Borrar esta copia</button>
+          } @else {
+            <button type="button" (click)="remove()">Confirmar borrado</button>
+          }
+        }
+      </div>
+      <p>El PDF y la revisión usan la versión guardada. Esas acciones guardan antes.</p>
+    </fieldset>
+
+    @if (store.report(); as report) {
+      <section>
+        <h2>Revisión ATS</h2>
+        <p><strong>{{ report.disclaimer }}</strong></p>
+        @if (report.termsTotal > 0) {
+          <p>
+            {{ report.termsInPdf }} de {{ report.termsTotal }} términos de la oferta aparecen en el texto del PDF.
+            Es una comparación de palabras, no un resultado de selección.
+          </p>
+        }
+        <ul>
+          @for (finding of report.findings; track finding.code) {
+            <li>{{ finding.level === 'aviso' ? 'Aviso' : 'Ok' }}: {{ finding.message }}</li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</main>
