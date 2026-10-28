@@ -1,0 +1,26 @@
+---
+description: Capas, ATS orientativo y límites del gestor de CV
+alwaysApply: true
+---
+
+# Arquitectura y producto
+
+Lee `AGENTS.md` antes de cambiar el diseño.
+
+- `domain` no importa Angular, Zod, Dexie, pdfmake ni pdf.js.
+- `application` solo importa `domain`.
+- `presentation` no importa `infrastructure`.
+- El enlace puerto → implementación va solo en `src/app/app.config.ts`.
+
+```typescript
+// Mal: el componente conoce Dexie
+import { DexieCvRepository } from '../infrastructure/dexie-cv-repository';
+
+// Bien: pide el puerto, registrado en app.config.ts
+const cvs = inject(CvRepository);
+```
+
+- `updatedAt` cambia solo si cambian `content` o `locale`.
+- No redactes experiencia, habilidades ni logros del usuario.
+- La auditoría ATS no dice que el CV esté aprobado ni que vaya a pasar un filtro.
+- Importar y exportar con descarga y `<input type="file">`. Sin File System Access API y sin red.

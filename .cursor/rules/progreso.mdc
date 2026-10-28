@@ -1,0 +1,21 @@
+---
+description: Mantener docs/progreso.md al día al cerrar cada paso
+alwaysApply: true
+---
+
+# Registro de progreso
+
+Al terminar un paso (aunque sea pequeño), actualiza `docs/progreso.md` en el mismo cambio.
+
+- Describe qué quedó hecho, qué funciona y cómo se comprobó.
+- Corrige el texto si un paso anterior ya no es cierto. El archivo es el estado vivo, no un diario que se contradice.
+- No lo marques como hecho si las pruebas o el build de ese paso fallaron.
+
+Ejemplo:
+
+```markdown
+## Dominio del CV
+
+- Igualdad de contenido y `updatedAt` cubiertos por `ng test`.
+- Funciona: renombrar no cambia `updatedAt`.
+```
