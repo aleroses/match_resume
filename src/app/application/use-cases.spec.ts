@@ -1,173 +1,183 @@
-import { createMaster } from '../domain/cv-document';
-import { BackupCodec, BackupFile, Clock, FileSaver, IdGenerator, PdfExporter, PdfTextExtractor } from './ports';
-import { InMemoryCvRepository } from './testing/in-memory-cv-repository';
-import {
-  AuditCv,
-  DeleteDerivedCv,
-  DeriveCv,
-  ImportBackup,
-  LoadLibrary,
-  SaveCvContent,
-  UpdateTarget,
-} from './use-cases';
+import { Clock } from './clock';
+import { IdGenerator } from './id-generator';
+import { InMemoryResumeRepository } from './testing/in-memory-resume-repository';
+import { DeleteVersion, DeriveVersion, ListResumes, OpenOrCreateMaster, SaveResume } from './use-cases';
+
+const T0 = '2026-01-02T03:04:05.000Z';
+const T1 = '2026-02-03T04:05:06.000Z';
+const T2 = '2026-03-04T05:06:07.000Z';
 
 class FixedClock extends Clock {
-  constructor(private current: string) {
+  constructor(private time: string) {
     super();
   }
 
   override now(): string {
-    return this.current;
+    return this.time;
+  }
+
+  advance(time: string): void {
+    this.time = time;
   }
 }
 
 class SequenceIds extends IdGenerator {
-  private n = 0;
+  private nextId = 1;
 
   override next(): string {
-    this.n += 1;
-    return `id-${this.n}`;
+    const id = `id-${this.nextId}`;
+    this.nextId += 1;
+    return id;
   }
 }
 
-class MemoryCodec extends BackupCodec {
-  override encode(file: BackupFile): string {
-    return JSON.stringify(file);
-  }
-
-  override decode(raw: string): BackupFile {
-    return JSON.parse(raw) as BackupFile;
-  }
+function setup(time = T0) {
+  const resumes = new InMemoryResumeRepository();
+  const clock = new FixedClock(time);
+  const ids = new SequenceIds();
+  return {
+    resumes,
+    clock,
+    open: new OpenOrCreateMaster(resumes, ids, clock),
+    list: new ListResumes(resumes),
+    derive: new DeriveVersion(resumes, ids, clock),
+    save: new SaveResume(resumes, clock),
+    remove: new DeleteVersion(resumes),
+  };
 }
 
-class ThrowingCodec extends BackupCodec {
-  override encode(): string {
-    return '';
-  }
+describe('documentos', () => {
+  it('crea un solo maestro vacío y lo reutiliza', async () => {
+    const { open, list, save } = setup();
+    const first = await open.execute();
+    const second = await open.execute();
 
-  override decode(): BackupFile {
-    throw new Error('El archivo no es JSON válido.');
-  }
-}
+    expect(second).toEqual(first);
+    expect(first.meta.kind).toBe('master');
+    expect(first.language).toBe('es');
+    expect(first.basics.name).toBe('');
+    expect(first.sections).toEqual([]);
+    expect((await list.execute()).resumes).toHaveLength(1);
 
-class RecordingRepository extends InMemoryCvRepository {
-  saves = 0;
-  replacements = 0;
-
-  override async save(document: Parameters<InMemoryCvRepository['save']>[0]): Promise<void> {
-    this.saves += 1;
-    await super.save(document);
-  }
-
-  override async replaceAll(documents: Parameters<InMemoryCvRepository['replaceAll']>[0]): Promise<void> {
-    this.replacements += 1;
-    await super.replaceAll(documents);
-  }
-}
-
-class FakePdf extends PdfExporter {
-  override async export(): Promise<Uint8Array> {
-    return new Uint8Array([1]);
-  }
-}
-
-class FakeText extends PdfTextExtractor {
-  constructor(private readonly text: string) {
-    super();
-  }
-
-  override async extract(): Promise<string> {
-    return this.text;
-  }
-}
-
-class MemoryFiles extends FileSaver {
-  saved: string[] = [];
-
-  override save(filename: string): void {
-    this.saved.push(filename);
-  }
-}
-
-describe('casos de uso', () => {
-  it('crea el maestro una sola vez y no reescribe si el contenido no cambia', async () => {
-    const cvs = new RecordingRepository();
-    const library = new LoadLibrary(cvs, new FixedClock('2026-01-01T00:00:00.000Z'), new SequenceIds());
-    const first = await library.execute();
-    expect(first).toHaveLength(1);
-    expect(first[0]?.kind).toBe('master');
-    cvs.saves = 0;
-    await library.execute();
-    expect(cvs.saves).toBe(0);
-
-    const save = new SaveCvContent(cvs, new FixedClock('2026-03-01T00:00:00.000Z'));
-    const unchanged = await save.execute(first[0].id, first[0].content, 'es');
-    expect(unchanged.updatedAt).toBe('2026-01-01T00:00:00.000Z');
-    expect(cvs.saves).toBe(0);
+    await expect(save.execute({ ...first, meta: { ...first.meta, id: 'otro' } })).rejects.toThrow(/maestro/);
   });
 
-  it('derivar copia el contenido y borrar el maestro está prohibido', async () => {
-    const cvs = new InMemoryCvRepository();
-    const ids = new SequenceIds();
-    const clock = new FixedClock('2026-01-01T00:00:00.000Z');
-    const [master] = await new LoadLibrary(cvs, clock, ids).execute();
-    await new SaveCvContent(cvs, clock).execute(master.id, { ...master.content, summary: 'Hecho por mí' }, 'es');
-    const derived = await new DeriveCv(cvs, new FixedClock('2026-04-01T00:00:00.000Z'), ids).execute('Oferta');
-    expect(derived.derivedFrom).toBe(master.id);
-    expect(derived.content.summary).toBe('Hecho por mí');
-    await expect(new DeleteDerivedCv(cvs).execute(master.id)).rejects.toThrow(/maestro/);
-    await new DeleteDerivedCv(cvs).execute(derived.id);
-    expect(await cvs.get(derived.id)).toBeNull();
+  it('derivar conserva los ids de elementos y no toca el maestro', async () => {
+    const { open, derive, resumes, clock } = setup();
+    const master = await open.execute();
+    master.sections = [
+      {
+        id: 's1',
+        visible: true,
+        title: 'Experiencia',
+        items: [
+          {
+            id: 'i1',
+            visible: true,
+            title: 'Dev',
+            organization: 'Acme',
+            location: '',
+            start: '2020-01',
+            end: null,
+            bullets: [{ id: 'b1', visible: true, text: 'Entregué el sistema.' }],
+          },
+        ],
+      },
+    ];
+    await resumes.save(master);
+    clock.advance(T1);
+
+    const version = await derive.execute(master.meta.id);
+    const storedMaster = await resumes.get(master.meta.id);
+
+    expect(version.meta.kind).toBe('version');
+    expect(version.meta.derivedFrom).toBe(master.meta.id);
+    expect(version.meta.id).not.toBe(master.meta.id);
+    expect(version.sections[0]!.id).toBe('s1');
+    expect(version.sections[0]!.items[0]!.bullets[0]!.id).toBe('b1');
+    expect(storedMaster).toEqual(master);
   });
 
-  it('editar la oferta no cambia updatedAt', async () => {
-    const cvs = new InMemoryCvRepository();
-    const ids = new SequenceIds();
-    const [master] = await new LoadLibrary(cvs, new FixedClock('2026-01-01T00:00:00.000Z'), ids).execute();
-    const derived = await new DeriveCv(cvs, new FixedClock('2026-02-01T00:00:00.000Z'), ids).execute('Oferta');
-    const updated = await new UpdateTarget(cvs).execute(derived.id, {
-      company: 'Acme',
-      role: 'Dev',
-      jobText: 'TypeScript',
+  it('borrar el maestro falla y la versión sí se borra', async () => {
+    const { open, derive, remove, list, clock } = setup();
+    const master = await open.execute();
+    clock.advance(T1);
+    const version = await derive.execute(master.meta.id);
+
+    await expect(remove.execute(master.meta.id)).rejects.toThrow(/maestro/);
+    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toContain(master.meta.id);
+
+    await remove.execute(version.meta.id);
+    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toEqual([master.meta.id]);
+    await expect(remove.execute(version.meta.id)).rejects.toThrow(/No está/);
+  });
+
+  it('lista por updatedAt descendente y desempata por id', async () => {
+    const { open, resumes, list } = setup();
+    const master = await open.execute();
+    const older = {
+      ...structuredClone(master),
+      meta: {
+        ...master.meta,
+        id: 'b',
+        kind: 'version' as const,
+        derivedFrom: master.meta.id,
+        updatedAt: T0,
+      },
+    };
+    const newer = {
+      ...structuredClone(master),
+      meta: {
+        ...master.meta,
+        id: 'a',
+        kind: 'version' as const,
+        derivedFrom: master.meta.id,
+        updatedAt: T1,
+      },
+    };
+    const tied = {
+      ...structuredClone(master),
+      meta: {
+        ...master.meta,
+        id: 'c',
+        kind: 'version' as const,
+        derivedFrom: master.meta.id,
+        updatedAt: T1,
+      },
+    };
+    await resumes.save(older);
+    await resumes.save(newer);
+    await resumes.save(tied);
+
+    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toEqual(['a', 'c', 'b', master.meta.id]);
+  });
+
+  it('guardar sin cambio de contenido no mueve updatedAt', async () => {
+    const { open, save, clock, resumes } = setup();
+    const master = await open.execute();
+    clock.advance(T2);
+
+    const renamed = await save.execute({ ...master, meta: { ...master.meta, name: 'Otro nombre' } });
+    expect(renamed.meta.name).toBe('Otro nombre');
+    expect(renamed.meta.updatedAt).toBe(T0);
+    expect(renamed.meta.revision).toBe(1);
+
+    const posted = await save.execute({
+      ...renamed,
+      posting: { company: 'Acme', title: 'Dev', status: 'applied', postingText: 'Texto', pdfFile: 'acme.pdf' },
     });
-    expect(updated.updatedAt).toBe(derived.updatedAt);
-    await expect(
-      new UpdateTarget(cvs).execute(master.id, { company: 'Acme', role: 'Dev', jobText: '' }),
-    ).rejects.toThrow(/derivada/);
-  });
+    expect(posted.meta.updatedAt).toBe(T0);
+    expect(posted.meta.revision).toBe(1);
 
-  it('no reemplaza el almacén si el respaldo no vale', async () => {
-    const cvs = new RecordingRepository();
-    const master = createMaster('m', '2026-01-01T00:00:00.000Z');
-    await cvs.save(master);
-    const importing = new ImportBackup(cvs, new ThrowingCodec());
-    await expect(importing.execute('{')).rejects.toThrow(/JSON/);
-    expect(cvs.replacements).toBe(0);
-    expect((await cvs.list()).map((document) => document.id)).toEqual(['m']);
-
-    const twoMasters = new ImportBackup(
-      cvs,
-      new MemoryCodec(),
-    );
-    const raw = JSON.stringify({
-      schemaVersion: 1,
-      exportedAt: '2026-01-01T00:00:00.000Z',
-      documents: [master, createMaster('m2', '2026-01-02T00:00:00.000Z')],
+    const edited = await save.execute({
+      ...posted,
+      basics: { ...posted.basics, summary: 'Resumen nuevo' },
+      meta: { ...posted.meta, updatedAt: T1, revision: 9 },
     });
-    await expect(twoMasters.execute(raw)).rejects.toThrow(/único CV maestro/);
-    expect(cvs.replacements).toBe(0);
-  });
-
-  it('la auditoría no escribe el CV ni afirma un aprobado', async () => {
-    const cvs = new RecordingRepository();
-    const master = createMaster('m', '2026-01-01T00:00:00.000Z');
-    master.content.identity.fullName = 'Ana';
-    await cvs.save(master);
-    cvs.saves = 0;
-    const report = await new AuditCv(cvs, new FakePdf(), new FakeText('Ana')).execute('m');
-    expect(cvs.saves).toBe(0);
-    expect(report.disclaimer).toMatch(/no garantiza/);
-    expect(report.findings.some((finding) => finding.message.toLowerCase().includes('aprobado'))).toBe(false);
-    expect(new MemoryFiles().saved).toEqual([]);
+    expect(edited.basics.summary).toBe('Resumen nuevo');
+    expect(edited.meta.updatedAt).toBe(T2);
+    expect(edited.meta.revision).toBe(2);
+    expect(edited.meta.createdAt).toBe(T0);
+    expect((await resumes.get(master.meta.id))?.meta.updatedAt).toBe(T2);
   });
 });

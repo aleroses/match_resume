@@ -1,5 +1,42 @@
 import { Posting, Resume, VisibilityTarget } from './resume';
 
+export function emptyMaster(id: string, at: string): Resume {
+  return {
+    schemaVersion: 1,
+    meta: {
+      id,
+      name: 'CV maestro',
+      kind: 'master',
+      derivedFrom: null,
+      createdAt: at,
+      updatedAt: at,
+      revision: 1,
+    },
+    language: 'es',
+    layout: 'one-column',
+    posting: { company: '', title: '', status: 'draft', postingText: '', pdfFile: null },
+    basics: { name: '', headline: '', email: '', phone: '', url: '', location: '', summary: '' },
+    sections: [],
+  };
+}
+
+export function withStoredTimestamps(stored: Resume, incoming: Resume, at: string): Resume {
+  const meta = sameContent(stored, incoming)
+    ? {
+        ...incoming.meta,
+        createdAt: stored.meta.createdAt,
+        updatedAt: stored.meta.updatedAt,
+        revision: stored.meta.revision,
+      }
+    : {
+        ...incoming.meta,
+        createdAt: stored.meta.createdAt,
+        updatedAt: at,
+        revision: stored.meta.revision + 1,
+      };
+  return { ...incoming, meta };
+}
+
 export function deriveVersion(resume: Resume, metaId: string, at: string): Resume {
   const copy = structuredClone(resume);
   copy.meta.id = metaId;
@@ -164,6 +201,36 @@ function assertPermutation(current: string[], ordered: string[]): void {
 
 function sameSequence(left: string[], right: string[]): boolean {
   return left.every((id, index) => id === right[index]);
+}
+
+function sameContent(stored: Resume, incoming: Resume): boolean {
+  return (
+    stored.language === incoming.language &&
+    stored.layout === incoming.layout &&
+    sameData(stored.basics, incoming.basics) &&
+    sameData(stored.sections, incoming.sections)
+  );
+}
+
+function sameData(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  if (typeof left !== 'object' || typeof right !== 'object' || left === null || right === null) {
+    return false;
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+      return false;
+    }
+    return left.every((item, index) => sameData(item, right[index]));
+  }
+  const leftEntries = Object.entries(left);
+  const rightRecord = right as Record<string, unknown>;
+  if (leftEntries.length !== Object.keys(rightRecord).length) {
+    return false;
+  }
+  return leftEntries.every(([key, value]) => sameData(value, rightRecord[key]));
 }
 
 function samePosting(left: Posting, right: Posting): boolean {
