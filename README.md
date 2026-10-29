@@ -1,13 +1,11 @@
 # Gestor de CV
 
-Aplicación de solo cliente para un CV maestro, copias por oferta y PDF con texto seleccionable.
+Esqueleto Angular 22 de solo cliente. La interfaz está en español. Aún no hay funcionalidad de CV.
 
 ```bash
 npm start
 ```
 
-Los datos viven en IndexedDB. El respaldo es un JSON (`cv-respaldo.json`) y un PDF que se descargan y se suben a mano a GitHub.
+Las capas están en `src/app/{domain,application,infrastructure,presentation}`. El enlace de puertos está en `src/app/app.config.ts`.
 
-La revisión ATS es orientativa y no garantiza pasar un filtro automático.
-
-`AGENTS.md` tiene las instrucciones del proyecto.
+`AGENTS.md` tiene las instrucciones del proyecto. Las conclusiones del spike de PDF están en `docs/spike-pdf.md`.
