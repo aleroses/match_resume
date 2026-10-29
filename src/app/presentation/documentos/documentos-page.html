@@ -1,20 +1,84 @@
 <h1>Documentos</h1>
 
 @if (store.persistenceDenied()) {
-  <p class="aviso">El navegador puede borrar estos datos. El respaldo es exportar el JSON a GitHub.</p>
+  <p class="aviso">
+    El navegador puede borrar estos datos. El respaldo es exportar el JSON a GitHub.
+  </p>
 }
 
 @if (store.unreadableIds().length === 1) {
   <p class="aviso">No se pudo leer un documento. El resto sigue disponible.</p>
 } @else if (store.unreadableIds().length > 1) {
-  <p class="aviso">No se pudieron leer {{ store.unreadableIds().length }} documentos. El resto sigue disponible.</p>
+  <p class="aviso">
+    No se pudieron leer {{ store.unreadableIds().length }} documentos. El resto sigue disponible.
+  </p>
+}
+
+@if (store.error()) {
+  <p class="aviso">{{ store.error() }}</p>
 }
 
 @if (store.loading()) {
   <p>Cargando documentos…</p>
-} @else if (store.error()) {
-  <p class="aviso">{{ store.error() }}</p>
 } @else {
+  <div class="barra">
+    <button type="button" (click)="exportAll()" [disabled]="store.busy()">Exportar todo</button>
+    <button type="button" (click)="importFile()" [disabled]="store.busy()">Importar</button>
+  </div>
+
+  @if (store.unbackedCount() === 1) {
+    <p class="aviso">1 documento sin respaldar</p>
+  } @else if (store.unbackedCount() > 1) {
+    <p class="aviso">{{ store.unbackedCount() }} documentos sin respaldar</p>
+  }
+
+  @if (store.importPlan(); as plan) {
+    <section class="plan">
+      <h2>Qué se va a importar</h2>
+      @if (plan.items.length === 0) {
+        <p>El archivo no trae documentos.</p>
+      } @else {
+        <ul>
+          @for (item of plan.items; track item.resume.meta.id) {
+            <li>
+              <p>{{ item.resume.meta.name }}: {{ item.reason }}</p>
+              @if (item.action === 'conflict') {
+                <div class="opciones">
+                  <label>
+                    <input
+                      type="radio"
+                      [name]="'import-' + item.resume.meta.id"
+                      [checked]="!store.replaces(item.resume.meta.id)"
+                      (change)="choose(item.resume.meta.id, false)"
+                    />
+                    Conservar el de este navegador
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      [name]="'import-' + item.resume.meta.id"
+                      [checked]="store.replaces(item.resume.meta.id)"
+                      (change)="choose(item.resume.meta.id, true)"
+                    />
+                    Usar el importado
+                  </label>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+      <div class="acciones">
+        <button type="button" (click)="confirmImport()" [disabled]="store.busy()">Confirmar</button>
+        <button type="button" (click)="cancelImport()" [disabled]="store.busy()">Cancelar</button>
+      </div>
+    </section>
+  }
+
+  @if (store.importResult(); as result) {
+    <p>{{ summary(result) }}</p>
+  }
+
   <ul class="lista">
     @for (resume of store.resumes(); track resume.meta.id; let first = $first) {
       <li class="tarjeta">
@@ -40,9 +104,16 @@
         }
         <p>Modificado: {{ resume.meta.updatedAt | date: 'd MMM y, HH:mm' }}</p>
         <div class="acciones">
-          <button type="button" (click)="create(resume.meta.id)">Crear versión</button>
+          <button type="button" (click)="exportOne(resume.meta.id)" [disabled]="store.busy()">
+            Exportar
+          </button>
+          <button type="button" (click)="create(resume.meta.id)" [disabled]="store.busy()">
+            Crear versión
+          </button>
           @if (resume.meta.kind === 'version') {
-            <button type="button" (click)="remove(resume.meta.id)">Eliminar</button>
+            <button type="button" (click)="remove(resume.meta.id)" [disabled]="store.busy()">
+              Eliminar
+            </button>
           }
         </div>
       </li>

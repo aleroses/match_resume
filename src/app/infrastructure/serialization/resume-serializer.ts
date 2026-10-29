@@ -20,7 +20,7 @@ export function parseResume(json: string): Resume {
   return result.data;
 }
 
-function orderResume(resume: Resume): Resume {
+export function orderResume(resume: Resume): Resume {
   return {
     schemaVersion: resume.schemaVersion,
     meta: {

@@ -7,33 +7,34 @@ Estado vivo del proyecto. Se actualiza al cerrar cada paso.
 - `AGENTS.md` es la instrucción del proyecto que lee Cursor.
 - Reglas siempre activas: `.cursor/rules/progreso.mdc` y `.cursor/rules/arquitectura.mdc`.
 
-## Rama `etapa-3`
+## Rama `etapa-4`
 
-Sin commit. Parte de `etapa-1` (`16cd097`, el modelo y el JSON). El esqueleto Angular 22 zoneless sigue. No hay editor de contenido, PDF ni importar/exportar.
+Parte de `etapa-3` (`b392995`, IndexedDB y el panel). Sin commit. No hay editor de contenido ni PDF.
 
-- Capas `domain`, `application`, `infrastructure` y `presentation`. `app.config.ts` enlaza `IdGenerator`, `Clock`, `ResumeRepository` y los casos de uso.
-- `LOCALE_ID` es `es`. Rutas: `/documentos` (panel), `/editor/:id` y `/exportar` siguen vacías. `/` redirige a documentos.
-- ESLint `no-restricted-imports` impide saltarse las capas.
+- Capas y enlace en `app.config.ts`, ahora también `FileGateway`, `ResumeArchive`, `BackupReminderStore` y los casos de exportar e importar.
+- ESLint `no-restricted-imports` sigue impidiendo saltarse las capas. La presentación no importa infraestructura.
 - Fuentes Source Sans 3 en `public/fonts/`. Conclusiones del spike en `docs/spike-pdf.md`.
 
 ## Modelo y JSON
 
-- Un solo tipo `Resume` para maestro y versión (`meta.kind`, `meta.derivedFrom`).
-- `updatedAt` y `revision` cambian si cambia el contenido. Renombrar y editar la postulación no los mueven. `withStoredTimestamps` aplica esa regla al guardar.
-- `deriveVersion` copia en profundidad, conserva los ids de secciones, ítems y viñetas, y pone un `meta.id` nuevo.
-- JSON `schemaVersion` 1, indentado a 2 espacios, con orden de claves fijo. El formato está en `docs/formato-json.md`.
+- Un solo tipo `Resume` para maestro y versión. El paquete no añade campos al CV.
+- `updatedAt` y `revision` cambian si cambia el contenido. Renombrar y editar la postulación no los mueven. Importar guarda el documento del archivo tal cual, sin pasar por esa regla.
+- JSON `schemaVersion` 1. Exportar todo escribe un paquete `bundleVersion` 1 con `exportedAt` y `documents`. El formato está en `docs/formato-json.md`.
 
 ## Documentos
 
-- IndexedDB (`match-resume`, tabla `resumes`, clave `meta.id`). Al leer, Zod deja fuera un registro ilegible y devuelve su id. Un maestro ilegible impide crear otro.
-- Al entrar en `/documentos` se abre o se crea un único maestro vacío en español.
-- Cada tarjeta muestra nombre, tipo, empresa y puesto si la versión los tiene, y la fecha «Modificado» en español. La primera lleva «Más reciente».
-- «Crear versión» en todas. «Eliminar» solo en versiones, con confirmación.
-- Si `navigator.storage.persist()` no se concede, un aviso recuerda que el respaldo es exportar el JSON a GitHub.
+- IndexedDB (`match-resume`, tabla `resumes`, clave `meta.id`). Al entrar en `/documentos` se abre o se crea un único maestro vacío en español.
+- Cada tarjeta tiene «Exportar», «Crear versión» y, si es una versión, «Eliminar». Arriba están «Exportar todo» e «Importar».
+- Importar suma. Primero se valida el archivo entero; si un documento no vale, no se escribe nada y el aviso dice cuál. Después se muestra el plan. Confirmar escribe. Cancelar no.
+- Un id nuevo se añade. Uno idéntico se ignora. Si el archivo es más reciente, confirmar lo reemplaza. Si el local es más reciente, o la fecha coincide y no son iguales, se conserva el local salvo que en ese documento se elija el importado. Un maestro con otro id se rechaza y el resto del archivo puede entrar.
+- En un navegador sin datos, el maestro que crea la página al entrar bloquea el maestro de un respaldo si el id es distinto. La prueba de ida y vuelta usa un almacén vacío y no crea ese maestro antes.
+- El aviso «N documentos sin respaldar» cuenta los CV con `updatedAt` posterior al último «Exportar todo». Si nunca se ha exportado todo, cuentan todos. Exportar uno solo no mueve esa fecha.
+- Si `navigator.storage.persist()` no se concede, otro aviso recuerda que el respaldo es exportar el JSON a GitHub.
 
 ## Comprobado
 
-- `ng test --watch=false`: 24 pruebas. Incluyen el repositorio en memoria y Dexie con `fake-indexeddb`.
-- `npm run lint` y `ng build`. El build de producción avisa de que el bundle inicial (783 kB, por Dexie) supera el aviso de 500 kB.
-- En el navegador del IDE (Chromium): el maestro aparece con fecha e insignia y sin «Eliminar»; «Crear versión» añade una tarjeta que pasa a ser la más reciente; cancelar la confirmación la deja; aceptarla la borra y el maestro sigue tras recargar. El aviso de persistencia se muestra porque el navegador no la concedió. `/editor/demo` sigue mostrando su título.
-- Firefox no se abrió. Node del entorno es v25; Angular avisa de que declara soporte para 22, 24 o 26 o superior.
+- `ng test --watch=false`: 47 pruebas. Incluyen la clasificación, el repositorio en memoria y el paquete Zod.
+- `npm run lint` y `ng build`. El build de producción avisa de que el bundle inicial supera el aviso de 500 kB.
+- En el navegador del IDE (Chromium): el maestro muestra «1 documento sin respaldar»; exportar uno baja `cv-<slug>-<8 del id>.json`; exportar todo baja el paquete, guarda la fecha y quita el aviso; crear una versión lo vuelve a mostrar; borrar esa versión e importar el paquete propone añadirla e ignorar el maestro; cancelar no escribe; confirmar la añade con su fecha original; repetir el archivo ignora los dos; un nombre distinto con la misma fecha pide elección y, si se elige el importado, reemplaza sin mover `updatedAt`; un documento malo nombra la posición y no toca el almacén; un segundo maestro se rechaza en el plan. La versión de prueba se borró y se limpió la fecha de respaldo de esa comprobación, así que el aviso volvió a «1 documento sin respaldar».
+- Firefox no se abrió. Ahí falta mirar que la descarga caiga en la carpeta elegida y que el selector de archivo abra y, si se cancela, no cambie nada.
+- Node del entorno es v25; Angular avisa de que declara soporte para 22, 24 o 26 o superior.

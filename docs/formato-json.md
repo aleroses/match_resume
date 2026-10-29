@@ -143,3 +143,49 @@ Las fechas de `meta` son instantes ISO (`2026-01-02T03:04:05.000Z`). Las de un �
   ]
 }
 ```
+
+## Paquete
+
+Exportar todo escribe un archivo distinto, no un CV suelto. Lleva `bundleVersion` 1, `exportedAt` y `documents`. `exportedAt` es un instante ISO del momento de la exportación y no forma parte de ningún CV. `documents` es la lista de CV, cada uno con la forma de los ejemplos de arriba, en el orden de la lista: el más reciente primero y, si la fecha coincide, por id.
+
+La indentación es de 2 espacios y el archivo termina con un salto de línea. Una clave de más, un `bundleVersion` distinto de 1 o un documento que no migra a la versión 1 rechazan el paquete entero. Un JSON sin `bundleVersion` ni `documents` es un CV suelto.
+
+```json
+{
+  "bundleVersion": 1,
+  "exportedAt": "2026-03-04T05:06:07.000Z",
+  "documents": [
+    {
+      "schemaVersion": 1,
+      "meta": {
+        "id": "m1",
+        "name": "CV maestro",
+        "kind": "master",
+        "derivedFrom": null,
+        "createdAt": "2026-01-02T03:04:05.000Z",
+        "updatedAt": "2026-01-02T03:04:05.000Z",
+        "revision": 1
+      },
+      "language": "es",
+      "layout": "one-column",
+      "posting": {
+        "company": "",
+        "title": "",
+        "status": "draft",
+        "postingText": "",
+        "pdfFile": null
+      },
+      "basics": {
+        "name": "Ana Núñez",
+        "headline": "Desarrolladora",
+        "email": "ana@example.com",
+        "phone": "+34 600 000 000",
+        "url": "https://example.com",
+        "location": "Madrid",
+        "summary": "Resumen con ñ y tildes."
+      },
+      "sections": []
+    }
+  ]
+}
+```
