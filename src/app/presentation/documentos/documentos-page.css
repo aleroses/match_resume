@@ -1,66 +1,21 @@
-.aviso {
-  margin: 0 0 1rem;
-  color: #5c4a00;
-}
-
-.lista {
+.stack {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 0.75rem;
 }
 
-.tarjeta {
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-}
-
-.cabecera {
+.card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
-h2 {
-  margin: 0;
-  font-size: 1.15rem;
+.banner p {
+  margin: 0 0 var(--space-2);
 }
 
-.insignia {
-  font-size: 0.8rem;
-  border: 1px solid #333;
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-}
-
-.oferta,
-p {
-  margin: 0.35rem 0;
-}
-
-.barra,
-.acciones,
-.opciones {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.barra {
-  margin-bottom: 1rem;
-}
-
-.plan {
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-}
-
-.plan ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.banner .btn {
+  margin-top: var(--space-2);
 }

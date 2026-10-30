@@ -7,9 +7,13 @@ Estado vivo del proyecto. Se actualiza al cerrar cada paso.
 - `AGENTS.md` es la instrucción del proyecto que lee Cursor.
 - Reglas siempre activas: `.cursor/rules/progreso.mdc`, `.cursor/rules/arquitectura.mdc` y `.cursor/rules/guia-de-uso.mdc`.
 
-## Rama `etapa-5a1`
+## Rama `etapa-5a2`
 
-Parte de `master` (`02a836c`, editor de contenido). Sin commit. Hay editor en `/editor/:id`. No hay PDF ni vista previa.
+Parte de `master` (`6d8daeb`). Sin commit. Hay editor en `/editor/:id`. No hay PDF ni vista previa.
+
+- Tema en la barra superior: Sistema, Claro u Oscuro. `ThemeStore` guarda `match-resume.theme` en localStorage. Sistema deja que mande `prefers-color-scheme`. La presentación no importa infraestructura.
+- Source Sans 3, la misma de `public/fonts/`, es la fuente de la interfaz. Tokens y clases (botón, tarjeta, insignia, banner, campo) están en `src/styles.css`.
+- `/documentos` y el editor usan esa presentación. El editor muestra el error de fecha junto al ítem y en la barra de guardado. Guardar sigue desactivado con la misma condición.
 
 - El arranque no llama a `navigator.storage.persist()`. En `/documentos` el aviso del JSON está siempre, con el botón «Proteger los datos del navegador». El botón actualiza `persistenceDenied` y, si se concede, `persistenceGranted` lo oculta.
 - Un maestro virgen (`revision` 1 y el mismo contenido que `emptyMaster`) se sustituye al confirmar un maestro de otro id: se borra el vacío y se adopta el id del archivo. Si el local ya tiene contenido, sigue el rechazo. Un segundo maestro del mismo archivo se rechaza.
@@ -48,10 +52,11 @@ Parte de `master` (`02a836c`, editor de contenido). Sin commit. Hay editor en `/
 
 ## Comprobado
 
-- `ng test --watch=false`: 59 pruebas. Incluyen el maestro virgen, el rechazo si ya hay contenido, `derivedFrom` de las versiones, la ida y vuelta tras abrir un almacén vacío, el día local del paquete, añadir y quitar bloques, `GetResume` y el paquete Zod.
+- `ng test --watch=false`: 59 pruebas. El tema no cambia esas pruebas; el shell registra un almacén de tema en memoria.
 - `npm run lint` y `ng build`. El build de producción avisa de que el bundle inicial supera el aviso de 500 kB.
+- En Chromium: `/documentos` y el editor, en Claro y en Oscuro. El selector guarda la elección y Sistema, sin `data-theme`, sigue a `prefers-color-scheme`. La fuente es Source Sans 3. Los botones miden 44px. En 390px de ancho las acciones de la tarjeta pasan a columna. Una fecha «marzo» desactiva «Guardar» y el aviso sale junto al ítem y en la barra. Esa sección de prueba se eliminó sin guardar. El maestro sigue en «Modificado: 29 oct 2026, 20:24».
+- Firefox no se abrió. Ahí falta mirar que Sistema siga al tema del equipo, que Claro u Oscuro se recuerden al recargar, y que ñ y tildes salgan con Source Sans 3. También, que la página no se quede en blanco al entrar, que el permiso de almacenamiento solo salga al pulsar «Proteger los datos del navegador», que la descarga caiga en `data/` y que el selector de archivo, si se cancela, no cambie nada.
 - En Chromium, `/documentos` pinta la lista con el aviso del JSON y «Proteger los datos del navegador» mientras sigue cargando, sin llamar a `persist()`. Al pulsar el botón sí se llama. Si el navegador no concede, el botón sigue. Si concede, el botón desaparece y la frase del JSON se queda. El maestro de esa comprobación sigue vacío, «Modificado: 29 oct 2026, 20:24», y el aviso en «1 documento sin respaldar».
 - En Chromium, el editor: «Editar» abre el maestro; guardar un resumen mueve «Modificado» y guardarlo otra vez no; en una versión, cambiar solo la empresa o el nombre deja la fecha quieta; una fecha «marzo» y un fin anterior al inicio desactivan «Guardar» y lo dicen en la pantalla; un correo con forma rara avisa y deja guardar; cancelar «Hay cambios sin guardar. ¿Salir de todas formas?» se queda en el editor y aceptar vuelve a documentos; `/editor/no-esta` dice «No está ese CV.». Las versiones de esa prueba se borraron. El resumen de prueba del maestro se dejó vacío, así que su «Modificado» quedó en 29 oct 2026, 20:24. El aviso sigue en «1 documento sin respaldar».
 - En el navegador del IDE (Chromium), el importar: el maestro muestra «1 documento sin respaldar»; exportar uno baja `cv-<slug>-<8 del id>.json`; exportar todo baja el paquete, guarda la fecha y quita el aviso; crear una versión lo vuelve a mostrar; borrar esa versión e importar el paquete propone añadirla e ignorar el maestro; cancelar no escribe; confirmar la añade con su fecha original; repetir el archivo ignora los dos; un nombre distinto con la misma fecha pide elección y, si se elige el importado, reemplaza sin mover `updatedAt`; un documento malo nombra la posición y no toca el almacén; un segundo maestro se rechaza en el plan. La versión de prueba se borró y se limpió la fecha de respaldo de esa comprobación, así que el aviso volvió a «1 documento sin respaldar».
-- Firefox no se abrió. Ahí falta mirar que la página no se quede en blanco al entrar, que el permiso de almacenamiento solo salga al pulsar «Proteger los datos del navegador», que la descarga caiga en `data/` y que el selector de archivo abra y, si se cancela, no cambie nada.
 - Node del entorno es v25; Angular avisa de que declara soporte para 22, 24 o 26 o superior.

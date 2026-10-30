@@ -256,6 +256,11 @@ export class EditorPage {
     return dateError(this.form.getRawValue().sections);
   }
 
+  itemDateMessage(sectionIndex: number, itemIndex: number): string | null {
+    const item = this.form.getRawValue().sections[sectionIndex]?.items[itemIndex];
+    return item ? itemDateError(item) : null;
+  }
+
   async save(): Promise<void> {
     const saved = this.saved();
     if (!saved || this.busy()) {
@@ -417,13 +422,21 @@ const YEAR_MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 function dateError(sections: SectionDraft[]): string | null {
   for (const section of sections) {
     for (const item of section.items) {
-      if (!isMonth(item.start) || (!item.current && !isMonth(item.end))) {
-        return 'Las fechas son YYYY-MM o se dejan vacías.';
-      }
-      if (!item.current && item.start !== '' && item.end !== '' && item.end < item.start) {
-        return 'La fecha de fin no puede ser anterior a la de inicio.';
+      const error = itemDateError(item);
+      if (error) {
+        return error;
       }
     }
+  }
+  return null;
+}
+
+function itemDateError(item: ItemDraft): string | null {
+  if (!isMonth(item.start) || (!item.current && !isMonth(item.end))) {
+    return 'Las fechas son YYYY-MM o se dejan vacías.';
+  }
+  if (!item.current && item.start !== '' && item.end !== '' && item.end < item.start) {
+    return 'La fecha de fin no puede ser anterior a la de inicio.';
   }
   return null;
 }

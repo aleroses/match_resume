@@ -10,6 +10,8 @@ El respaldo es descargar esos JSON y subirlos a git a mano. La app no habla con 
 
 La interfaz está en español. El texto del CV se escribe en `/editor/:id`, desde «Editar» en cada tarjeta. No hay PDF. `/exportar` solo muestra un título. Exportar e importar están en `/documentos`.
 
+Arriba, en todas las pantallas, hay una barra con «Gestor de CV» (vuelve a documentos) y «Tema»: Sistema, Claro u Oscuro. Sistema sigue el tema del equipo. Claro y Oscuro lo fijan. La elección se guarda en ese navegador.
+
 ## 2. Cómo arrancarla
 
 En la raíz del repositorio:
@@ -63,11 +65,11 @@ Editar una versión no cambia el maestro, ni al revés.
 
 «Editar» abre `/editor/:id`. Si ese id no está, o el CV no se puede leer, la pantalla dice el motivo y enlaza con documentos. No muestra el formulario.
 
-Ahí se cambia el nombre, los datos básicos (nombre, titular, correo, teléfono, URL, ubicación y resumen), el idioma del texto (español o inglés) y las secciones. Cada sección tiene título. Cada ítem tiene título, organización, ubicación, inicio y fin en `YYYY-MM`, o «Actual» si sigue abierto, y viñetas. Se pueden añadir, eliminar, subir, bajar y marcar como visibles.
+Ahí se cambia el nombre, los datos básicos (nombre, titular, correo, teléfono, URL, ubicación y resumen), el idioma del texto (español o inglés) y las secciones. Cada sección empieza abierta y se puede cerrar. Cada ítem tiene título, organización, ubicación, inicio y fin en `YYYY-MM`, o «Actual» si sigue abierto, y viñetas. Se pueden añadir, eliminar, subir, bajar y marcar como visibles.
 
 Si el CV es una versión, también están la empresa, el puesto, el estado (borrador, enviada o cerrada), el texto de la oferta y el nombre del PDF. El maestro no muestra esa oferta.
 
-«Guardar» escribe en el navegador. «Modificado» es la fecha ya guardada. Se mueve si cambia el texto, el idioma, el orden, la visibilidad o las fechas. Cambiar solo el nombre, o solo la oferta de una versión, no la mueve. Una fecha que no es `YYYY-MM`, o un fin anterior al inicio, no deja guardar y lo dice en la pantalla. Un correo con forma rara avisa y sí deja guardar.
+«Guardar» queda abajo mientras se edita y escribe en el navegador. «Modificado» es la fecha ya guardada. Se mueve si cambia el texto, el idioma, el orden, la visibilidad o las fechas. Cambiar solo el nombre, o solo la oferta de una versión, no la mueve. Una fecha que no es `YYYY-MM`, o un fin anterior al inicio, no deja guardar y lo dice junto a ese ítem. Un correo con forma rara avisa debajo del correo y sí deja guardar.
 
 La app no propone frases de experiencia, habilidades ni logros.
 

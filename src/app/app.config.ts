@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { BackupReminderStore } from './application/backup-reminder-store';
+import { ThemeStore } from './application/theme-store';
 import { Clock } from './application/clock';
 import { FileGateway } from './application/file-gateway';
 import { IdGenerator } from './application/id-generator';
@@ -28,6 +29,7 @@ import { BrowserFileGateway } from './infrastructure/browser-file-gateway';
 import { CryptoIdGenerator } from './infrastructure/crypto-id-generator';
 import { DexieResumeRepository } from './infrastructure/dexie-resume-repository';
 import { LocalStorageBackupReminder } from './infrastructure/local-storage-backup-reminder';
+import { LocalStorageThemeStore } from './infrastructure/local-storage-theme-store';
 import { ZodResumeArchive } from './infrastructure/serialization/resume-archive';
 import { SystemClock } from './infrastructure/system-clock';
 
@@ -45,6 +47,7 @@ export const appConfig: ApplicationConfig = {
     { provide: FileGateway, useClass: BrowserFileGateway },
     { provide: ResumeArchive, useClass: ZodResumeArchive },
     { provide: BackupReminderStore, useClass: LocalStorageBackupReminder },
+    { provide: ThemeStore, useClass: LocalStorageThemeStore },
     {
       provide: OpenOrCreateMaster,
       useFactory: () =>

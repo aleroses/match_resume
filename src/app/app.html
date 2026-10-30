@@ -1,1 +1,12 @@
+<header class="app-bar">
+  <a class="app-name" routerLink="/documentos">Gestor de CV</a>
+  <label class="theme-choice">
+    Tema
+    <select [value]="theme()" (change)="setTheme(choice($event))">
+      <option value="system">Sistema</option>
+      <option value="light">Claro</option>
+      <option value="dark">Oscuro</option>
+    </select>
+  </label>
+</header>
 <router-outlet />

@@ -1,235 +1,283 @@
-@if (loading()) {
-  <p>Cargando el CV…</p>
-} @else if (loadError()) {
-  <p class="aviso">{{ loadError() }}</p>
-  <p><a routerLink="/documentos">Volver a documentos</a></p>
-} @else if (saved(); as resume) {
-  <p><a routerLink="/documentos">Volver a documentos</a></p>
-  <form [formGroup]="form" (ngSubmit)="save()">
-    <header class="cabecera">
-      <label>
-        Nombre
-        <input type="text" formControlName="name" />
-      </label>
-      <p>Modificado: {{ resume.meta.updatedAt | date: 'd MMM y, HH:mm' }}</p>
-      @if (hasUnsavedChanges()) {
-        <p class="aviso">Cambios sin guardar</p>
-      }
-    </header>
+<div class="page">
+  @if (loading()) {
+    <p>Cargando el CV…</p>
+  } @else if (loadError()) {
+    <p class="banner banner-error">{{ loadError() }}</p>
+    <p><a class="btn btn-quiet" routerLink="/documentos">Volver a documentos</a></p>
+  } @else if (saved(); as resume) {
+    <p><a class="btn btn-quiet" routerLink="/documentos">Volver a documentos</a></p>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <header>
+        <label class="field">
+          Nombre
+          <input type="text" formControlName="name" />
+        </label>
+        <p class="muted">Modificado: {{ resume.meta.updatedAt | date: 'd MMM y, HH:mm' }}</p>
+      </header>
 
-    <fieldset formGroupName="basics">
-      <legend>Datos básicos</legend>
-      <label>
-        Nombre
-        <input type="text" formControlName="name" />
-      </label>
-      <label>
-        Titular
-        <input type="text" formControlName="headline" />
-      </label>
-      <label>
-        Correo
-        <input type="text" formControlName="email" autocomplete="email" />
-      </label>
-      @if (emailWarning(); as warning) {
-        <p class="aviso">{{ warning }}</p>
-      }
-      <label>
-        Teléfono
-        <input type="text" formControlName="phone" />
-      </label>
-      <label>
-        URL
-        <input type="text" formControlName="url" />
-      </label>
-      <label>
-        Ubicación
-        <input type="text" formControlName="location" />
-      </label>
-      <label>
-        Resumen
-        <textarea formControlName="summary" rows="4"></textarea>
-      </label>
-    </fieldset>
-
-    <label>
-      Idioma del CV
-      <select formControlName="language">
-        <option value="es">Español</option>
-        <option value="en">English</option>
-      </select>
-    </label>
-
-    @if (resume.meta.kind === 'version') {
-      <fieldset formGroupName="posting">
-        <legend>Oferta</legend>
-        <label>
-          Empresa
-          <input type="text" formControlName="company" />
+      <fieldset class="card" formGroupName="basics">
+        <legend>Datos básicos</legend>
+        <label class="field">
+          Nombre
+          <input type="text" formControlName="name" />
         </label>
-        <label>
-          Puesto
-          <input type="text" formControlName="title" />
+        <label class="field">
+          Titular
+          <input type="text" formControlName="headline" />
         </label>
-        <label>
-          Estado
-          <select formControlName="status">
-            <option value="draft">Borrador</option>
-            <option value="applied">Enviada</option>
-            <option value="closed">Cerrada</option>
-          </select>
+        <label class="field">
+          Correo
+          <input type="text" formControlName="email" autocomplete="email" />
         </label>
-        <label>
-          Texto de la oferta
-          <textarea formControlName="postingText" rows="4"></textarea>
+        @if (emailWarning(); as warning) {
+          <p class="field-error">{{ warning }}</p>
+        }
+        <label class="field">
+          Teléfono
+          <input type="text" formControlName="phone" />
         </label>
-        <label>
-          Nombre del PDF
-          <input type="text" formControlName="pdfFile" />
+        <label class="field">
+          URL
+          <input type="text" formControlName="url" />
+        </label>
+        <label class="field">
+          Ubicación
+          <input type="text" formControlName="location" />
+        </label>
+        <label class="field">
+          Resumen
+          <textarea formControlName="summary" rows="4"></textarea>
         </label>
       </fieldset>
-    }
 
-    <section>
-      <h2>Secciones</h2>
-      <button type="button" (click)="addSection()">Añadir sección</button>
-      @for (
-        section of form.controls.sections.controls;
-        track section.controls.id.value;
-        let si = $index
-      ) {
-        <fieldset [formGroup]="section" class="bloque">
-          <legend>Sección {{ si + 1 }}</legend>
-          <label>
-            Título
+      <label class="field">
+        Idioma del CV
+        <select formControlName="language">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+
+      @if (resume.meta.kind === 'version') {
+        <fieldset class="card" formGroupName="posting">
+          <legend>Oferta</legend>
+          <label class="field">
+            Empresa
+            <input type="text" formControlName="company" />
+          </label>
+          <label class="field">
+            Puesto
             <input type="text" formControlName="title" />
           </label>
-          <label>
-            <input
-              type="checkbox"
-              formControlName="visible"
-              (change)="showSection(si, checked($event))"
-            />
-            Visible
+          <label class="field">
+            Estado
+            <select formControlName="status">
+              <option value="draft">Borrador</option>
+              <option value="applied">Enviada</option>
+              <option value="closed">Cerrada</option>
+            </select>
           </label>
-          <div class="acciones">
-            <button type="button" (click)="moveSection(si, -1)" [disabled]="si === 0">Subir</button>
-            <button
-              type="button"
-              (click)="moveSection(si, 1)"
-              [disabled]="si === form.controls.sections.length - 1"
-            >
-              Bajar
-            </button>
-            <button type="button" (click)="removeSectionAt(si)">Eliminar</button>
-            <button type="button" (click)="addItemAt(si)">Añadir ítem</button>
-          </div>
-          @for (
-            item of section.controls.items.controls;
-            track item.controls.id.value;
-            let ii = $index
-          ) {
-            <fieldset [formGroup]="item" class="bloque">
-              <legend>Ítem {{ ii + 1 }}</legend>
-              <label>
+          <label class="field">
+            Texto de la oferta
+            <textarea formControlName="postingText" rows="4"></textarea>
+          </label>
+          <label class="field">
+            Nombre del PDF
+            <input type="text" formControlName="pdfFile" />
+          </label>
+        </fieldset>
+      }
+
+      <section>
+        <h2>Secciones</h2>
+        <button class="btn btn-secondary" type="button" (click)="addSection()">
+          Añadir sección
+        </button>
+        @for (
+          section of form.controls.sections.controls;
+          track section.controls.id.value;
+          let si = $index
+        ) {
+          <details class="section" open>
+            <summary>
+              Sección {{ si + 1 }}
+              @if (section.controls.title.value) {
+                <span class="muted">{{ section.controls.title.value }}</span>
+              }
+            </summary>
+            <fieldset class="card" [formGroup]="section">
+              <label class="field">
                 Título
                 <input type="text" formControlName="title" />
               </label>
-              <label>
-                Organización
-                <input type="text" formControlName="organization" />
-              </label>
-              <label>
-                Ubicación
-                <input type="text" formControlName="location" />
-              </label>
-              <label>
-                Inicio
-                <input type="text" formControlName="start" placeholder="YYYY-MM" />
-              </label>
-              <label>
-                Fin
-                <input type="text" formControlName="end" placeholder="YYYY-MM" />
-              </label>
-              <label>
-                <input type="checkbox" formControlName="current" />
-                Actual
-              </label>
-              <label>
+              <label class="check">
                 <input
                   type="checkbox"
                   formControlName="visible"
-                  (change)="showItem(si, ii, checked($event))"
+                  (change)="showSection(si, checked($event))"
                 />
                 Visible
               </label>
-              <div class="acciones">
-                <button type="button" (click)="moveItem(si, ii, -1)" [disabled]="ii === 0">
+              <div class="toolbar">
+                <button
+                  class="btn btn-quiet"
+                  type="button"
+                  (click)="moveSection(si, -1)"
+                  [disabled]="si === 0"
+                >
                   Subir
                 </button>
                 <button
+                  class="btn btn-quiet"
                   type="button"
-                  (click)="moveItem(si, ii, 1)"
-                  [disabled]="ii === section.controls.items.length - 1"
+                  (click)="moveSection(si, 1)"
+                  [disabled]="si === form.controls.sections.length - 1"
                 >
                   Bajar
                 </button>
-                <button type="button" (click)="removeItemAt(si, ii)">Eliminar</button>
-                <button type="button" (click)="addBulletAt(si, ii)">Añadir viñeta</button>
+                <button class="btn btn-danger" type="button" (click)="removeSectionAt(si)">
+                  Eliminar
+                </button>
+                <button class="btn btn-secondary" type="button" (click)="addItemAt(si)">
+                  Añadir ítem
+                </button>
               </div>
               @for (
-                bullet of item.controls.bullets.controls;
-                track bullet.controls.id.value;
-                let bi = $index
+                item of section.controls.items.controls;
+                track item.controls.id.value;
+                let ii = $index
               ) {
-                <fieldset [formGroup]="bullet" class="bloque">
-                  <legend>Viñeta {{ bi + 1 }}</legend>
-                  <label>
-                    Texto
-                    <textarea formControlName="text" rows="2"></textarea>
+                <fieldset class="card nested" [formGroup]="item">
+                  <legend>Ítem {{ ii + 1 }}</legend>
+                  <label class="field">
+                    Título
+                    <input type="text" formControlName="title" />
                   </label>
-                  <label>
+                  <label class="field">
+                    Organización
+                    <input type="text" formControlName="organization" />
+                  </label>
+                  <label class="field">
+                    Ubicación
+                    <input type="text" formControlName="location" />
+                  </label>
+                  <label class="field">
+                    Inicio
+                    <input type="text" formControlName="start" placeholder="YYYY-MM" />
+                  </label>
+                  <label class="field">
+                    Fin
+                    <input type="text" formControlName="end" placeholder="YYYY-MM" />
+                  </label>
+                  @if (itemDateMessage(si, ii); as dates) {
+                    <p class="field-error">{{ dates }}</p>
+                  }
+                  <label class="check">
+                    <input type="checkbox" formControlName="current" />
+                    Actual
+                  </label>
+                  <label class="check">
                     <input
                       type="checkbox"
                       formControlName="visible"
-                      (change)="showBullet(si, ii, bi, checked($event))"
+                      (change)="showItem(si, ii, checked($event))"
                     />
                     Visible
                   </label>
-                  <div class="acciones">
+                  <div class="toolbar">
                     <button
+                      class="btn btn-quiet"
                       type="button"
-                      (click)="moveBullet(si, ii, bi, -1)"
-                      [disabled]="bi === 0"
+                      (click)="moveItem(si, ii, -1)"
+                      [disabled]="ii === 0"
                     >
                       Subir
                     </button>
                     <button
+                      class="btn btn-quiet"
                       type="button"
-                      (click)="moveBullet(si, ii, bi, 1)"
-                      [disabled]="bi === item.controls.bullets.length - 1"
+                      (click)="moveItem(si, ii, 1)"
+                      [disabled]="ii === section.controls.items.length - 1"
                     >
                       Bajar
                     </button>
-                    <button type="button" (click)="removeBulletAt(si, ii, bi)">Eliminar</button>
+                    <button class="btn btn-danger" type="button" (click)="removeItemAt(si, ii)">
+                      Eliminar
+                    </button>
+                    <button class="btn btn-secondary" type="button" (click)="addBulletAt(si, ii)">
+                      Añadir viñeta
+                    </button>
                   </div>
+                  @for (
+                    bullet of item.controls.bullets.controls;
+                    track bullet.controls.id.value;
+                    let bi = $index
+                  ) {
+                    <fieldset class="card nested" [formGroup]="bullet">
+                      <legend>Viñeta {{ bi + 1 }}</legend>
+                      <label class="field">
+                        Texto
+                        <textarea formControlName="text" rows="2"></textarea>
+                      </label>
+                      <label class="check">
+                        <input
+                          type="checkbox"
+                          formControlName="visible"
+                          (change)="showBullet(si, ii, bi, checked($event))"
+                        />
+                        Visible
+                      </label>
+                      <div class="toolbar">
+                        <button
+                          class="btn btn-quiet"
+                          type="button"
+                          (click)="moveBullet(si, ii, bi, -1)"
+                          [disabled]="bi === 0"
+                        >
+                          Subir
+                        </button>
+                        <button
+                          class="btn btn-quiet"
+                          type="button"
+                          (click)="moveBullet(si, ii, bi, 1)"
+                          [disabled]="bi === item.controls.bullets.length - 1"
+                        >
+                          Bajar
+                        </button>
+                        <button
+                          class="btn btn-danger"
+                          type="button"
+                          (click)="removeBulletAt(si, ii, bi)"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </fieldset>
+                  }
                 </fieldset>
               }
             </fieldset>
-          }
-        </fieldset>
-      }
-    </section>
+          </details>
+        }
+      </section>
 
-    @if (dateMessage(); as dates) {
-      <p class="aviso">{{ dates }}</p>
-    }
-    @if (formError()) {
-      <p class="aviso">{{ formError() }}</p>
-    }
-    @if (notice()) {
-      <p>{{ notice() }}</p>
-    }
-    <button type="submit" [disabled]="busy() || dateMessage() !== null">Guardar</button>
-  </form>
-}
+      <div class="save-bar">
+        @if (hasUnsavedChanges()) {
+          <p class="banner banner-warning">Cambios sin guardar</p>
+        }
+        @if (dateMessage(); as dates) {
+          <p class="banner banner-error">{{ dates }}</p>
+        }
+        @if (formError()) {
+          <p class="banner banner-error">{{ formError() }}</p>
+        }
+        @if (notice()) {
+          <p class="banner banner-success">{{ notice() }}</p>
+        }
+        <button class="btn btn-primary" type="submit" [disabled]="busy() || dateMessage() !== null">
+          Guardar
+        </button>
+      </div>
+    </form>
+  }
+</div>
