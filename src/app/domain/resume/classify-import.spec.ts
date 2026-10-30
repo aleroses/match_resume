@@ -56,6 +56,18 @@ describe('classifyImport', () => {
     expect(classifyImport(master(), incoming)).toBe('reject-second-master');
   });
 
+  it('adopta un maestro con otro id si el local está virgen', () => {
+    const local = emptyMaster('local', T0);
+    local.meta.name = 'Otro nombre';
+    expect(classifyImport(local, emptyMaster('backup', T1))).toBe('adopt-master');
+  });
+
+  it('rechaza un maestro vacío si la revisión ya subió', () => {
+    const local = emptyMaster('local', T0);
+    local.meta.revision = 2;
+    expect(classifyImport(local, emptyMaster('m2', T1))).toBe('reject-second-master');
+  });
+
   it('compara un maestro cuando el id es el mismo', () => {
     const local = master();
     const incoming = structuredClone(local);

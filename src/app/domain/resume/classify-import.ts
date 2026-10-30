@@ -1,4 +1,5 @@
 import { Resume } from './resume';
+import { isVirginMaster } from './resume-rules';
 
 export type ImportClass =
   | 'add'
@@ -6,6 +7,7 @@ export type ImportClass =
   | 'replace-newer'
   | 'keep-local-newer'
   | 'reject-second-master'
+  | 'adopt-master'
   | 'conflict-diverged';
 
 export function classifyImport(local: Resume | null, incoming: Resume): ImportClass {
@@ -15,7 +17,7 @@ export function classifyImport(local: Resume | null, incoming: Resume): ImportCl
     incoming.meta.kind === 'master' &&
     local.meta.id !== incoming.meta.id
   ) {
-    return 'reject-second-master';
+    return isVirginMaster(local) ? 'adopt-master' : 'reject-second-master';
   }
   if (!local) {
     return 'add';

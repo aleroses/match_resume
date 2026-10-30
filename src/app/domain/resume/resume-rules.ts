@@ -20,6 +20,13 @@ export function emptyMaster(id: string, at: string): Resume {
   };
 }
 
+export function isVirginMaster(resume: Resume): boolean {
+  if (resume.meta.kind !== 'master' || resume.meta.revision !== 1) {
+    return false;
+  }
+  return sameContent(resume, emptyMaster(resume.meta.id, resume.meta.createdAt));
+}
+
 export function withStoredTimestamps(stored: Resume, incoming: Resume, at: string): Resume {
   const meta = sameContent(stored, incoming)
     ? {

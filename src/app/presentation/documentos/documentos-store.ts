@@ -36,6 +36,7 @@ export class DocumentosStore {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly persistenceDenied = signal(false);
+  readonly persistenceGranted = signal(false);
   readonly lastExportAllAt = signal<string | null>(this.reminder.lastExportAllAt());
   readonly importPlan = signal<ImportPlan | null>(null);
   readonly importResult = signal<ImportResult | null>(null);
@@ -165,8 +166,21 @@ export class DocumentosStore {
     }
   }
 
-  denyPersistence(): void {
-    this.persistenceDenied.set(true);
+  async requestPersistence(): Promise<void> {
+    const persist = navigator.storage?.persist?.bind(navigator.storage);
+    if (!persist) {
+      this.persistenceGranted.set(false);
+      this.persistenceDenied.set(true);
+      return;
+    }
+    try {
+      const granted = await persist();
+      this.persistenceGranted.set(granted);
+      this.persistenceDenied.set(!granted);
+    } catch {
+      this.persistenceGranted.set(false);
+      this.persistenceDenied.set(true);
+    }
   }
 
   private async refresh(): Promise<void> {

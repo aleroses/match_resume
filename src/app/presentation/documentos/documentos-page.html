@@ -1,10 +1,11 @@
 <h1>Documentos</h1>
 
-@if (store.persistenceDenied()) {
-  <p class="aviso">
-    El navegador puede borrar estos datos. El respaldo es exportar el JSON a GitHub.
-  </p>
-}
+<p class="aviso">
+  El navegador puede borrar estos datos. El respaldo es exportar el JSON a GitHub.
+  @if (!store.persistenceGranted()) {
+    <button type="button" (click)="protectStorage()">Proteger los datos del navegador</button>
+  }
+</p>
 
 @if (store.unreadableIds().length === 1) {
   <p class="aviso">No se pudo leer un documento. El resto sigue disponible.</p>

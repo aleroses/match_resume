@@ -4,7 +4,6 @@ import {
   ApplicationConfig,
   inject,
   LOCALE_ID,
-  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
@@ -31,7 +30,6 @@ import { DexieResumeRepository } from './infrastructure/dexie-resume-repository'
 import { LocalStorageBackupReminder } from './infrastructure/local-storage-backup-reminder';
 import { ZodResumeArchive } from './infrastructure/serialization/resume-archive';
 import { SystemClock } from './infrastructure/system-clock';
-import { DocumentosStore } from './presentation/documentos/documentos-store';
 
 registerLocaleData(localeEs);
 
@@ -85,22 +83,5 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => new PlanImport(inject(ResumeRepository), inject(ResumeArchive)),
     },
     { provide: ApplyImport, useFactory: () => new ApplyImport(inject(ResumeRepository)) },
-    provideAppInitializer(() => {
-      const store = inject(DocumentosStore);
-      const persist = navigator.storage?.persist?.bind(navigator.storage);
-      if (!persist) {
-        store.denyPersistence();
-        return;
-      }
-      return persist()
-        .then((granted) => {
-          if (!granted) {
-            store.denyPersistence();
-          }
-        })
-        .catch(() => {
-          store.denyPersistence();
-        });
-    }),
   ],
 };

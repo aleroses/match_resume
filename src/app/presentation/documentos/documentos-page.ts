@@ -53,6 +53,10 @@ export class DocumentosPage {
     this.store.choose(id, replace);
   }
 
+  protectStorage(): void {
+    void this.store.requestPersistence();
+  }
+
   kindLabel(resume: Resume): string {
     return resume.meta.kind === 'master' ? 'Maestro' : 'Versión';
   }

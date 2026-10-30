@@ -1,10 +1,11 @@
 import { BackupReminderStore } from './backup-reminder-store';
 import { Clock } from './clock';
 import { FileGateway } from './file-gateway';
+import { IdGenerator } from './id-generator';
 import { ResumeArchive } from './resume-archive';
 import { InMemoryResumeRepository } from './testing/in-memory-resume-repository';
 import { ApplyImport, ExportAll, ExportResume, PlanImport, resumeFileName } from './transfer';
-import { ListResumes } from './use-cases';
+import { ListResumes, OpenOrCreateMaster } from './use-cases';
 import { Resume } from '../domain/resume/resume';
 import { deriveVersion, emptyMaster } from '../domain/resume/resume-rules';
 
@@ -75,6 +76,24 @@ class CountingRepository extends InMemoryResumeRepository {
   }
 }
 
+class SequenceIds extends IdGenerator {
+  private nextId = 1;
+
+  override next(): string {
+    const id = `id-${this.nextId}`;
+    this.nextId += 1;
+    return id;
+  }
+}
+
+function localDay(iso: string): string {
+  const date = new Date(iso);
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function harness(time = T1) {
   const resumes = new CountingRepository();
   const files = new MemoryFiles();
@@ -92,6 +111,7 @@ function harness(time = T1) {
     plan: new PlanImport(resumes, archive),
     apply: new ApplyImport(resumes),
     list,
+    open: new OpenOrCreateMaster(resumes, new SequenceIds(), clock),
   };
 }
 
@@ -124,7 +144,7 @@ describe('exportar e importar', () => {
 
     await exportAll.execute();
 
-    expect(files.downloads[0]?.filename).toBe('match-resume-respaldo-2026-02-03.json');
+    expect(files.downloads[0]?.filename).toBe(`match-resume-respaldo-${localDay(T1)}.json`);
     const packed = JSON.parse(files.downloads[0]!.text) as { documents: Resume[] };
     const listed = await list.execute();
     expect(packed.documents.map((resume) => resume.meta.id)).toEqual(
@@ -204,9 +224,36 @@ describe('exportar e importar', () => {
     expect((await resumes.get('same'))?.meta.updatedAt).toBe(T0);
   });
 
-  it('rechaza un segundo maestro y añade la versión del mismo archivo', async () => {
+  it('adopta el maestro del archivo si el local está virgen y conserva derivedFrom', async () => {
     const { resumes, archive, plan, apply } = harness();
     const local = emptyMaster('local-master', T0);
+    local.meta.name = 'Renombrado';
+    await resumes.save(local);
+    const other = emptyMaster('other-master', T1);
+    other.basics.summary = 'Texto del respaldo';
+    const version = deriveVersion(other, 'version-1', T1);
+    const text = archive.serializeBundle([other, version], T1);
+
+    const planned = await plan.execute(text);
+    expect(await resumes.get('local-master')).toEqual(local);
+    expect(planned.items.map((item) => item.action)).toEqual(['replace', 'add']);
+    expect(planned.items[0]?.removeId).toBe('local-master');
+    expect(planned.items[0]?.reason).toBe(
+      'El maestro de este navegador está vacío. Al confirmar se borra y se adopta el del archivo.',
+    );
+    const result = await apply.execute(planned, new Set());
+
+    expect(result).toEqual({ added: 1, replaced: 1, skipped: 0, rejected: 0 });
+    expect(await resumes.get('local-master')).toBeNull();
+    expect((await resumes.get('other-master'))?.basics.summary).toBe('Texto del respaldo');
+    expect((await resumes.get('version-1'))?.meta.derivedFrom).toBe('other-master');
+  });
+
+  it('rechaza un segundo maestro si el local ya tiene contenido', async () => {
+    const { resumes, archive, plan, apply } = harness();
+    const local = emptyMaster('local-master', T0);
+    local.basics.summary = 'Ya escrito';
+    local.meta.revision = 2;
     await resumes.save(local);
     const other = emptyMaster('other-master', T1);
     const version = deriveVersion(other, 'version-1', T1);
@@ -219,7 +266,21 @@ describe('exportar e importar', () => {
     expect(result).toEqual({ added: 1, replaced: 0, skipped: 0, rejected: 1 });
     expect(await resumes.get('local-master')).toEqual(local);
     expect(await resumes.get('other-master')).toBeNull();
-    expect((await resumes.get('version-1'))?.meta.kind).toBe('version');
+    expect((await resumes.get('version-1'))?.meta.derivedFrom).toBe('other-master');
+  });
+
+  it('tras adoptar, un segundo maestro del mismo archivo se rechaza', async () => {
+    const { resumes, archive, plan, apply } = harness();
+    await resumes.save(emptyMaster('local', T0));
+    const first = emptyMaster('m1', T0);
+    const second = emptyMaster('m2', T0);
+    const planned = await plan.execute(archive.serializeBundle([first, second], T1));
+
+    expect(planned.items.map((item) => item.action)).toEqual(['replace', 'reject']);
+    await apply.execute(planned, new Set());
+    expect(await resumes.get('local')).toBeNull();
+    expect(await resumes.get('m1')).toEqual(first);
+    expect(await resumes.get('m2')).toBeNull();
   });
 
   it('en un almacén vacío el segundo maestro del archivo se rechaza', async () => {
@@ -281,5 +342,29 @@ describe('exportar e importar', () => {
     await target.apply.execute(planned, new Set());
 
     expect(await target.list.execute()).toEqual(await source.list.execute());
+  });
+
+  it('recupera el maestro y las versiones tras borrar el almacén y abrirlo', async () => {
+    const source = harness();
+    const master = emptyMaster('m1', T0);
+    master.basics.name = 'Ana Núñez';
+    const version = deriveVersion(master, 'v1', T0);
+    version.posting.company = 'Acme';
+    await source.resumes.save(master);
+    await source.resumes.save(version);
+    await source.exportAll.execute();
+
+    const target = harness();
+    const created = await target.open.execute();
+    const planned = await target.plan.execute(source.files.downloads[0]!.text);
+
+    expect(planned.items.map((item) => item.action)).toEqual(['replace', 'add']);
+    expect(planned.items[0]?.removeId).toBe(created.meta.id);
+    await target.apply.execute(planned, new Set());
+
+    expect(await target.resumes.get(created.meta.id)).toBeNull();
+    expect(await target.resumes.get('m1')).toEqual(master);
+    expect((await target.resumes.get('v1'))?.meta.derivedFrom).toBe('m1');
+    expect((await target.resumes.get('v1'))?.posting.company).toBe('Acme');
   });
 });

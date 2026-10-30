@@ -1,301 +1,372 @@
-Nota importante: Me gustaria trabajar con una carpeta que se llame data para que todo lo que generemos se vaya ahí y no tener archivos por diferentes ubicaciones.
-
-Otra cosa, siempre que abro en proyecto en firefox me aparece un mensaje emergente que dice: Allow localhost: 4200 to store data in persistent storage? block allow.
-
-Despues de esto el navegador se congela, no pasa con Chrome.
-
-Tambien al probar me salio esto en la terminal:
-
-                                  match_resume   etapa-4 ≢  ?2 ~1 -1  
-ale ❯ ng test --watch=false && npm run lint && ng build
-zsh: command not found: ng
-
-
-http-server no es muy antiguo para ser usando el 2026?
-
-en mi terminal:
-
-                                  match_resume   etapa-4 ≢  ?2 ~1 -1  
-ale ❯ npx http-server dist/match-resume/browser -p 4300 -a 127.0.0.1
-# abre http://127.0.0.1:4300/
-Need to install the following packages:
-http-server@14.1.1
-Ok to proceed? (y) y
-
-npm warn deprecated whatwg-encoding@2.0.0: Use @exodus/bytes instead for a more spec-conformant and faster implementation
-Starting up http-server, serving dist/match-resume/browser
-
-http-server version: 14.1.1
-
-http-server settings: 
-CORS: disabled
-Cache: 3600 seconds
-Connection Timeout: 120 seconds
-Directory Listings: visible
-AutoIndex: visible
-Serve GZIP Files: false
-Serve Brotli Files: false
-Default File Extension: none
-
-Available on:
-  http://127.0.0.1:4300
-Hit CTRL-C to stop the server
-
-
-Eso sigue bloqueando el navegador firefox, simplemente se congela así que haré mis pruebas en Chrome usando npm start y dando click donde dice local: http://localhost:4200/ para poder ver la web no de http-server no se si sea necesario.
-
-Probé importando un cv existente e inmediatamente exporte y me dio cv-cv-maestro-bc7524de.json
-
-{
-  "schemaVersion": 1,
-  "meta": {
-    "id": "bc7524de-db84-43ad-9dd6-2ce683cac249",
-    "name": "CV maestro",
-    "kind": "master",
-    "derivedFrom": null,
-    "createdAt": "2026-10-30T00:47:15.369Z",
-    "updatedAt": "2026-10-30T00:47:15.369Z",
-    "revision": 1
-  },
-  "language": "es",
-  "layout": "one-column",
-  "posting": {
-    "company": "",
-    "title": "",
-    "status": "draft",
-    "postingText": "",
-    "pdfFile": null
-  },
-  "basics": {
-    "name": "",
-    "headline": "",
-    "email": "",
-    "phone": "",
-    "url": "",
-    "location": "",
-    "summary": ""
-  },
-  "sections": []
-}
-
-
-En realidad no entiendo como funciona la web, se ve muy simple y sin funciones...
-
-4. Documentar el funcionamiento paso a paso
-
-Me dio esto:
-
-Voy a contrastar la guía con el comportamiento real de la app y con el formato de las reglas, para no documentar nada que no esté comprobado.
-
-luego:
-
-Guía de uso
-
-Dos archivos nuevos. Sin capturas. Sin editor, PDF ni cuentas: eso se dice como ausencia, no como función. También se actualiza docs/progreso.md, porque la regla de progreso ya obliga a dejar el estado vivo en el mismo cambio.
-
-docs/guia-de-uso.md
-
-Español, para dentro de unos meses. Los textos de pantalla se copian de la app.
-
-
-
-
-
-Qué es y qué no es. Solo el navegador. Sin cuentas y sin servidor. Los CV viven en IndexedDB (match-resume). El respaldo son los JSON que tú subes a git. La interfaz está en español. /editor y /exportar solo muestran un título; exportar e importar están en /documentos. No hay forma de editar el texto del CV en la pantalla.
-
-
-
-Arranque. En la raíz del repo: npm install, luego npm start (ng serve). Abrir http://localhost:4200/; redirige a /documentos. El build es npm run build y deja los archivos en dist/match-resume/browser. Para servirlo con lo que ya trae el proyecto: npx ng serve --configuration production (también en el puerto 4200). No hay un script aparte de servidor estático.
-
-
-
-/documentos. Al entrar, si no hay maestro, se crea uno vacío llamado «CV maestro». Una versión es una copia con otro id. «Más reciente» es la primera tarjeta: updatedAt de mayor a menor y, si empatan, el id. «Modificado» es esa fecha en español (d MMM y, HH:mm). «1 documento sin respaldar» / «N documentos sin respaldar» cuenta CV con updatedAt posterior al último «Exportar todo»; si nunca se ha exportado todo, cuentan todos. El aviso de persistencia es el texto exacto: «El navegador puede borrar estos datos. El respaldo es exportar el JSON a GitHub.» Si una versión trae empresa o puesto, la tarjeta los muestra. Hoy no hay pantalla para rellenarlos.
-
-
-
-Crear y borrar. «Crear versión» en cualquier tarjeta. La copia no se vuelve a sincronizar. «Eliminar» solo en versiones, con «¿Eliminar esta versión?». El maestro no tiene ese botón y el caso de uso lo rechaza.
-
-
-
-Respaldo. «Exportar» en la tarjeta: cv-<slug>-<8 primeros del id>.json. El slug sale del nombre (minúsculas, sin tildes; «CV maestro» da cv-cv-maestro-…). «Exportar todo»: match-resume-respaldo-YYYY-MM-DD.json, con la fecha UTC. El navegador elige la carpeta; la app no. Guardar esos archivos dentro del repo (por ejemplo en una carpeta respaldos/ que creas tú; la app no la crea) y:
-
-git add respaldos
-git commit -m "Respaldo de los CV"
-git push
-
-Este clon no tiene remoto. git push solo funciona cuando ya exista uno. Exportar uno no quita el aviso de sin respaldar; exportar todo sí, para los CV cuya fecha no sea posterior.
-
-
-
-
-
-Restaurar. «Importar» abre el selector. Cancelarlo no cambia nada. Tras elegir archivo, «Qué se va a importar» y luego Confirmar o Cancelar. Textos reales del plan: se añadirá; ya está y se ignora; el archivo es más reciente y se reemplaza al confirmar; conflicto (local más reciente, o misma fecha y no iguales) con «Conservar el de este navegador» marcado y «Usar el importado» como la otra opción; maestro con otro id, no se importa. Al confirmar, la línea «Añadidos: N. Reemplazados: N. Ignorados: N. Rechazados: N.» Un archivo que no vale (JSON malo, paquete con un documento malo, id repetido) muestra el error y no escribe nada de ese archivo.
-
-
-
-Desastre. Clonar o copiar el repo con los JSON, npm install, npm start, abrir /documentos. Eso crea un maestro vacío nuevo. Importar el paquete rechaza el maestro del archivo («Ya hay un CV maestro con otro id») y puede añadir las versiones. No hay botón para borrar el maestro ni para adoptar el id del respaldo. El texto del maestro no vuelve por la pantalla. La guía lo dice así, sin un paso inventado que deje el maestro restaurado.
-
-
-
-Problemas. Documento ilegible: «No se pudo leer un documento…» (o el plural) y el resto sigue. Segundo maestro: el mensaje del plan. Descarga: la app dispara la descarga del navegador y no elige carpeta; si en Firefox no cae donde esperas, la carpeta la manda la configuración de descargas de Firefox. Eso no se comprobó en Firefox; se describe el mecanismo, no un fallo reproducido.
-
-
-
-Mapa, unas diez líneas. domain (datos y classifyImport), application (casos de uso y puertos), infrastructure (Dexie, Zod, descarga), presentation/documentos (pantalla y store), enlace en src/app/app.config.ts. Formato de archivo: docs/formato-json.md.
-
-Regla
-
-.cursor/rules/guia-de-uso.mdc, alwaysApply: true, menos de 15 líneas, al estilo de progreso.mdc: si cambia lo que se ve (textos, botones, avisos, importar, exportar, rutas visibles), actualizar docs/guia-de-uso.md en el mismo cambio; quitar lo que ya no sea cierto; no documentar lo que no se haya comprobado.
-
-Y me respondio con:
-
-La guía quedó en `docs/guia-de-uso.md`. Describe solo lo que la app hace ahora: arranque, la pantalla de documentos, versiones, respaldo con `git add`, `commit` y `push`, e importar.
-
-El apartado de desastre dice el límite real. En un navegador vacío la página crea un maestro nuevo, y el maestro del JSON se rechaza porque el id es otro. Las versiones sí pueden volver. No hay paso que restaure el texto del maestro.
-
-También está `.cursor/rules/guia-de-uso.mdc`, siempre activa y de menos de 15 líneas: si cambia lo que se ve, la guía se actualiza en el mismo cambio. `docs/progreso.md` ya lo recoge.
-
-Nota: Acabo de crear un repo remoto y no tiene descripción, ni readme ni gitignore tampoco licencia, necesito subir esta información con todo esto ya que ahora no tiene nada.
-
-https://github.com/aleroses/match_resume.git
-
-…or create a new repository on the command line
-
-echo "# match_resume" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M master
+Tengo esto en la consola:
+
+                                match_resume   etapa-5a ≢  ?8 ~11 -1  
+ale ❯ git add -A
+git commit -m "Etapa 5a: editor de contenido"
+git tag gestor-v0 e06d276          # el gestor viejo queda a salvo
+
+git checkout master
+git merge --ff-only etapa-5a       # master pasa a tener todo el trabajo nuevo
 git remote add origin https://github.com/aleroses/match_resume.git
 git push -u origin master
+git push origin gestor-v0
+[etapa-5a 02a836c] Etapa 5a: editor de contenido
+ 19 files changed, 1644 insertions(+), 22 deletions(-)
+ create mode 100644 .cursor/rules/guia-de-uso.mdc
+ create mode 100644 cv_prompt.md
+ rename match-resume-respaldo-2026-10-29.json => data/match-resume-respaldo-2026-10-29.json (100%)
+ create mode 100644 docs/guia-de-uso.md
+ create mode 100644 src/app/presentation/editor/editor-page.css
+ create mode 100644 src/app/presentation/editor/editor-page.html
+ create mode 100644 src/app/presentation/editor/resume-form.spec.ts
+ create mode 100644 src/app/presentation/editor/resume-form.ts
+fatal: tag 'gestor-v0' already exists
+Switched to branch 'master'
+Updating e06d276..02a836c
+Fast-forward
+ .cursor/rules/guia-de-uso.mdc                       |   11 +
+ README.md                                           |    8 +-
+ angular.json                                        |   23 +-
+ cv_prompt.md                                        |  301 +++++
+ data/cv-cv-maestro-6781f2fe.json                    |   31 +
+ data/match-resume-respaldo-2026-10-29.json          |   68 +
+ docs/formato-json.md                                |  191 +++
+ docs/guia-de-uso.md                                 |  150 +++
+ docs/progreso.md                                    |   56 +-
+ docs/spike-pdf.md                                   |   11 +
+ package-lock.json                                   | 1420 +++++---------------
+ package.json                                        |    7 +-
+ scripts/check-pdf.mjs                               |   54 -
+ src/app/app.config.ts                               |  112 +-
+ src/app/app.routes.ts                               |   15 +-
+ src/app/application/README.md                       |    5 +
+ src/app/application/backup-reminder-store.ts        |    4 +
+ src/app/application/clock.ts                        |    3 +
+ src/app/application/file-gateway.ts                 |    9 +
+ src/app/application/id-generator.ts                 |    3 +
+ src/app/application/ports.ts                        |   43 -
+ src/app/application/resume-archive.ts               |    7 +
+ src/app/application/resume-repository.ts            |   13 +
+ .../application/testing/in-memory-cv-repository.ts  |   30 -
+ .../testing/in-memory-resume-repository.ts          |   33 +
+ src/app/application/transfer.spec.ts                |  285 ++++
+ src/app/application/transfer.ts                     |  179 +++
+ src/app/application/use-cases.spec.ts               |  323 +++--
+ src/app/application/use-cases.ts                    |  234 +---
+ src/app/domain/README.md                            |    5 +
+ src/app/domain/assess-ats.spec.ts                   |   34 -
+ src/app/domain/assess-ats.ts                        |  165 ---
+ src/app/domain/cv-document.spec.ts                  |   51 -
+ src/app/domain/cv-document.ts                       |  291 ----
+ src/app/domain/normalize-whitespace.spec.ts         |    7 +
+ src/app/domain/normalize-whitespace.ts              |    3 +
+ src/app/domain/resume/classify-import.spec.ts       |   66 +
+ src/app/domain/resume/classify-import.ts            |   58 +
+ src/app/domain/resume/resume-rules.spec.ts          |  264 ++++
+ src/app/domain/resume/resume-rules.ts               |  367 +++++
+ src/app/domain/resume/resume.ts                     |   70 +
+ src/app/domain/section-labels.ts                    |   39 -
+ src/app/infrastructure/README.md                    |    5 +
+ src/app/infrastructure/browser-file-gateway.ts      |   44 +
+ src/app/infrastructure/crypto-id-generator.ts       |    7 +
+ src/app/infrastructure/cv-schema.spec.ts            |   20 -
+ src/app/infrastructure/cv-schema.ts                 |  101 --
+ src/app/infrastructure/dexie-cv-repository.ts       |   48 -
+ .../infrastructure/dexie-resume-repository.spec.ts  |   36 +
+ src/app/infrastructure/dexie-resume-repository.ts   |   81 ++
+ .../infrastructure/local-storage-backup-reminder.ts |   21 +
+ .../infrastructure/pdf/cv-pdf-definition.spec.ts    |   29 -
+ src/app/infrastructure/pdf/cv-pdf-definition.ts     |  151 ---
+ src/app/infrastructure/pdf/pdfjs-text.ts            |   34 -
+ src/app/infrastructure/pdf/pdfmake-exporter.ts      |   59 -
+ src/app/infrastructure/serialization/migrate.ts     |   35 +
+ .../serialization/resume-archive.spec.ts            |  130 ++
+ .../infrastructure/serialization/resume-archive.ts  |  130 ++
+ .../infrastructure/serialization/resume-schema.ts   |   72 +
+ .../serialization/resume-serializer.spec.ts         |  132 ++
+ .../serialization/resume-serializer.ts              |   73 +
+ src/app/infrastructure/system-clock.ts              |    7 +
+ src/app/infrastructure/system.ts                    |   25 -
+ src/app/infrastructure/zod-backup-codec.ts          |   18 -
+ src/app/presentation/README.md                      |    5 +
+ src/app/presentation/cv-store.ts                    |  320 -----
+ src/app/presentation/documentos/documentos-page.css |   66 +
+ .../presentation/documentos/documentos-page.html    |  123 ++
+ src/app/presentation/documentos/documentos-page.ts  |   63 +
+ src/app/presentation/documentos/documentos-store.ts |  181 +++
+ src/app/presentation/editor/editor-page.css         |   35 +
+ src/app/presentation/editor/editor-page.html        |  402 +++---
+ src/app/presentation/editor/editor-page.ts          |  452 ++++++-
+ src/app/presentation/editor/resume-form.spec.ts     |   70 +
+ src/app/presentation/editor/resume-form.ts          |  145 ++
+ src/app/presentation/exportar/exportar-page.ts      |    7 +
+ src/app/presentation/library/library-page.html      |   51 -
+ src/app/presentation/library/library-page.ts        |   41 -
+ src/index.html                                      |    1 -
+ src/main.ts                                         |    3 +-
+ src/pdfmake-shims.d.ts                              |   21 -
+ src/styles.css                                      |  105 +-
+ tsconfig.app.json                                   |    8 +-
+ tsconfig.spec.json                                  |    9 +-
+ 84 files changed, 4993 insertions(+), 3422 deletions(-)
+ create mode 100644 .cursor/rules/guia-de-uso.mdc
+ create mode 100644 cv_prompt.md
+ create mode 100644 data/cv-cv-maestro-6781f2fe.json
+ create mode 100644 data/match-resume-respaldo-2026-10-29.json
+ create mode 100644 docs/formato-json.md
+ create mode 100644 docs/guia-de-uso.md
+ create mode 100644 docs/spike-pdf.md
+ delete mode 100644 scripts/check-pdf.mjs
+ create mode 100644 src/app/application/README.md
+ create mode 100644 src/app/application/backup-reminder-store.ts
+ create mode 100644 src/app/application/clock.ts
+ create mode 100644 src/app/application/file-gateway.ts
+ create mode 100644 src/app/application/id-generator.ts
+ delete mode 100644 src/app/application/ports.ts
+ create mode 100644 src/app/application/resume-archive.ts
+ create mode 100644 src/app/application/resume-repository.ts
+ delete mode 100644 src/app/application/testing/in-memory-cv-repository.ts
+ create mode 100644 src/app/application/testing/in-memory-resume-repository.ts
+ create mode 100644 src/app/application/transfer.spec.ts
+ create mode 100644 src/app/application/transfer.ts
+ create mode 100644 src/app/domain/README.md
+ delete mode 100644 src/app/domain/assess-ats.spec.ts
+ delete mode 100644 src/app/domain/assess-ats.ts
+ delete mode 100644 src/app/domain/cv-document.spec.ts
+ delete mode 100644 src/app/domain/cv-document.ts
+ create mode 100644 src/app/domain/normalize-whitespace.spec.ts
+ create mode 100644 src/app/domain/normalize-whitespace.ts
+ create mode 100644 src/app/domain/resume/classify-import.spec.ts
+ create mode 100644 src/app/domain/resume/classify-import.ts
+ create mode 100644 src/app/domain/resume/resume-rules.spec.ts
+ create mode 100644 src/app/domain/resume/resume-rules.ts
+ create mode 100644 src/app/domain/resume/resume.ts
+ delete mode 100644 src/app/domain/section-labels.ts
+ create mode 100644 src/app/infrastructure/README.md
+ create mode 100644 src/app/infrastructure/browser-file-gateway.ts
+ create mode 100644 src/app/infrastructure/crypto-id-generator.ts
+ delete mode 100644 src/app/infrastructure/cv-schema.spec.ts
+ delete mode 100644 src/app/infrastructure/cv-schema.ts
+ delete mode 100644 src/app/infrastructure/dexie-cv-repository.ts
+ create mode 100644 src/app/infrastructure/dexie-resume-repository.spec.ts
+ create mode 100644 src/app/infrastructure/dexie-resume-repository.ts
+ create mode 100644 src/app/infrastructure/local-storage-backup-reminder.ts
+ delete mode 100644 src/app/infrastructure/pdf/cv-pdf-definition.spec.ts
+ delete mode 100644 src/app/infrastructure/pdf/cv-pdf-definition.ts
+ delete mode 100644 src/app/infrastructure/pdf/pdfjs-text.ts
+ delete mode 100644 src/app/infrastructure/pdf/pdfmake-exporter.ts
+ create mode 100644 src/app/infrastructure/serialization/migrate.ts
+ create mode 100644 src/app/infrastructure/serialization/resume-archive.spec.ts
+ create mode 100644 src/app/infrastructure/serialization/resume-archive.ts
+ create mode 100644 src/app/infrastructure/serialization/resume-schema.ts
+ create mode 100644 src/app/infrastructure/serialization/resume-serializer.spec.ts
+ create mode 100644 src/app/infrastructure/serialization/resume-serializer.ts
+ create mode 100644 src/app/infrastructure/system-clock.ts
+ delete mode 100644 src/app/infrastructure/system.ts
+ delete mode 100644 src/app/infrastructure/zod-backup-codec.ts
+ create mode 100644 src/app/presentation/README.md
+ delete mode 100644 src/app/presentation/cv-store.ts
+ create mode 100644 src/app/presentation/documentos/documentos-page.css
+ create mode 100644 src/app/presentation/documentos/documentos-page.html
+ create mode 100644 src/app/presentation/documentos/documentos-page.ts
+ create mode 100644 src/app/presentation/documentos/documentos-store.ts
+ create mode 100644 src/app/presentation/editor/editor-page.css
+ create mode 100644 src/app/presentation/editor/resume-form.spec.ts
+ create mode 100644 src/app/presentation/editor/resume-form.ts
+ create mode 100644 src/app/presentation/exportar/exportar-page.ts
+ delete mode 100644 src/app/presentation/library/library-page.html
+ delete mode 100644 src/app/presentation/library/library-page.ts
+ delete mode 100644 src/pdfmake-shims.d.ts
+Username for 'https://github.com': aleroses
+Password for 'https://aleroses@github.com': 
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/aleroses/match_resume.git/'
+Username for 'https://github.com': aleroses
+Password for 'https://aleroses@github.com': 
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/aleroses/match_resume.git/'
+                                               match_resume  master ≢  
+1m 10.855s ale ❯ git remote
+origin
+                                               match_resume  master ≢  
+ale ❯ git remote -v
+origin  https://github.com/aleroses/match_resume.git (fetch)
+origin  https://github.com/aleroses/match_resume.git (push)
 
-or push an existing repository form the command line
+                                               match_resume  master ≢  
+ale ❯ git pull origin master
+fatal: couldn't find remote ref master
 
-git remote add origin https://github.com/aleroses/match_resume.git
-git branch -M master
-git push -u origin master
+ale ❯ git pull origin master
+fatal: couldn't find remote ref master
 
-Prompt de la Etapa 5a
-
-El editor puede apoyarse en las reglas que ya sellan `updatedAt`. Reviso qué falta en dominio para añadir y quitar bloques, y dejo el plan por cortes.
-
-El editor de contenido está en `/editor/:id`, en la rama `etapa-5a`. «Editar» en cada tarjeta abre ese CV. «Guardar» lo escribe con `SaveResume`: «Modificado» se mueve si cambia el texto, el idioma, el orden, la visibilidad o las fechas. El nombre y la oferta dejan esa fecha quieta.
-
-**Formularios reactivos.** El componente importa `ReactiveFormsModule`. Un `FormGroup` agrupa `FormControl`: cada control guarda un valor (el nombre, el correo, el título de una sección). En la plantilla, `formControlName` une el campo con ese control. Lo que se escribe vive en el formulario; al guardar, o al añadir y quitar bloques, ese valor se convierte en un `Resume`.
-
-**`FormArray`.** Es una lista de controles que crece y se encoge. Las secciones son un `FormArray`; dentro, los ítems; dentro de cada ítem, las viñetas. «Añadir» y «Eliminar» meten o sacan un grupo de esa lista. Subir, bajar y la visibilidad pasan por las reglas de dominio y vuelven a rellenar el formulario, así que el texto a medias se conserva.
-
-**`canDeactivate`.** Es una guarda de la ruta: Angular la llama antes de salir. `editorCanLeave` mira si hay cambios sin guardar y, si los hay, pregunta «Hay cambios sin guardar. ¿Salir de todas formas?». Cancelar se queda en el editor.
-
-**Parámetro de la ruta.** La ruta es `editor/:id`. Con `withComponentInputBinding`, ese `:id` llega al componente como un `input()`. Si el id no existe, la pantalla dice «No está ese CV.» y enlaza con documentos.
-
-En Chromium comprobé: guardar un texto mueve la fecha y guardarlo otra vez no; en una versión, empresa y nombre no la mueven; «marzo» y un fin anterior al inicio dejan «Guardar» desactivado; un correo con forma rara avisa y deja guardar; la pregunta al salir cancela o sale según la respuesta. Las versiones de esa prueba se borraron. El resumen de prueba del maestro se dejó vacío, así que su «Modificado» quedó en 29 oct 2026, 20:24.
-
-`ng test --watch=false` pasó 54 pruebas, `npm run lint` pasó y `ng build` también (sigue el aviso del bundle por encima de 500 kB). Firefox no se abrió. No hay commit.
+                                               match_resume  master ≢  
+ale ❯ git branch
+  etapa-1
+  etapa-3
+  etapa-4
+  etapa-5a
+* master
 
 
+                                          match_resume  master ≢  ~1  
+ale ❯ git remote -v
+origin  https://github.com/aleroses/match_resume.git (fetch)
+origin  https://github.com/aleroses/match_resume.git (push)
+                                          match_resume  master ≢  ~1  
+ale ❯ git remote set-url origin git@github.com:aleroses/match_resume.git
+                                          match_resume  master ≢  ~1  
+ale ❯ git remote -v                                                     
+origin  git@github.com:aleroses/match_resume.git (fetch)
+origin  git@github.com:aleroses/match_resume.git (push)
+
+                                          match_resume  master ≢  ~1  
+ale ❯ git pull origin master
+fatal: couldn't find remote ref master
+                                          match_resume  master ≢  ~1  
+1.201s ale ❯ git push origin master
+Enumerating objects: 244, done.
+Counting objects: 100% (244/244), done.
+Delta compression using up to 12 threads
+Compressing objects: 100% (233/233), done.
+Writing objects: 100% (244/244), 876.54 KiB | 8.94 MiB/s, done.
+Total 244 (delta 63), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (63/63), done.
+To github.com:aleroses/match_resume.git
+ * [new branch]      master -> master
+
+
+                                          match_resume  master ≢  ~1  
+2.706s ale ❯ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   cv_prompt.md
+
+
+El archivo cv_prompt.md es donde hago estos apuntes que te envio, debe estar en el .gitignore.
+
+Como arranco de cero? para hacer pruebas desde cero sin datos?
+
+7. Prompt para resolver todo (Etapa 5a.1)
+
+La hipótesis del congelamiento encaja con el arranque: `provideAppInitializer` devuelve la promesa de `persist()` y Angular no pinta hasta que Firefox responde. El maestro vacío también encaja con el rechazo actual, porque `emptyMaster` tiene `revision` 1.
+
+Correcciones 5a.1
+
+Rama etapa-5a1 desde master (ya tiene la 5a). Sin campos nuevos en Resume. Sin commit salvo que lo pidas.
+
+1. Persistencia: la causa y el arreglo
+
+Sí es esa la causa. En app.config.ts el provideAppInitializer hace return persist(). Angular no termina el arranque hasta que esa promesa se resuelve. Firefox muestra «Allow localhost:4200 to store data in persistent storage?» y la página se queda en blanco hasta que se responde.
 
 
 
-Nota: El uso del programa no debe ir en el readme? porque actualmente hay esto:
 
-# Gestor de CV
 
-Esqueleto Angular 22 de solo cliente. La interfaz está en español. Aún no hay funcionalidad de CV.
+Quitar ese initializer y el import de DocumentosStore en app.config.ts. El arranque no llama a persist() ni espera a persisted().
 
-```bash
-npm start
-```
 
-Las capas están en `src/app/{domain,application,infrastructure,presentation}`. El enlace de puertos está en `src/app/app.config.ts`.
 
-`AGENTS.md` tiene las instrucciones del proyecto. Las conclusiones del spike de PDF están en `docs/spike-pdf.md`.
+En documentos-store.ts, requestPersistence() solo desde el clic. Si persist() resuelve true, persistenceDenied queda en false y una signal persistenceGranted oculta el botón. Si resuelve false, falta la API o lanza, persistenceDenied pasa a true.
 
-Entonces en donde guardó el funcionamiento?
 
-Estructura del proyecto:
 
-                                 match_resume   etapa-5a ≢  ?5 ~7 -1  
-ale ❯ tree -L 4 -I "node_modules|.*"
-.
-├── AGENTS.md
-├── angular.json
-├── cv_prompt.md
-├── data
-│   ├── cv-cv-maestro-6781f2fe.json
-│   └── match-resume-respaldo-2026-10-29.json
-├── dist
-│   └── match-resume
-│       ├── 3rdpartylicenses.txt
-│       └── browser
-│           ├── favicon.ico
-│           ├── fonts
-│           ├── index.html
-│           ├── main-AOGJX4DJ.js
-│           └── styles-5INURTSO.css
-├── docs
-│   ├── formato-json.md
-│   ├── guia-de-uso.md
-│   ├── progreso.md
-│   └── spike-pdf.md
-├── eslint.config.mjs
-├── package.json
-├── package-lock.json
-├── public
-│   ├── favicon.ico
-│   └── fonts
-│       ├── OFL.txt
-│       ├── SourceSans3-BoldIt.ttf
-│       ├── SourceSans3-Bold.ttf
-│       ├── SourceSans3-It.ttf
-│       └── SourceSans3-Regular.ttf
-├── README.md
-├── src
-│   ├── app
-│   │   ├── app.config.ts
-│   │   ├── app.css
-│   │   ├── app.html
-│   │   ├── application
-│   │   │   ├── backup-reminder-store.ts
-│   │   │   ├── clock.ts
-│   │   │   ├── file-gateway.ts
-│   │   │   ├── id-generator.ts
-│   │   │   ├── README.md
-│   │   │   ├── resume-archive.ts
-│   │   │   ├── resume-repository.ts
-│   │   │   ├── testing
-│   │   │   ├── transfer.spec.ts
-│   │   │   ├── transfer.ts
-│   │   │   ├── use-cases.spec.ts
-│   │   │   └── use-cases.ts
-│   │   ├── app.routes.ts
-│   │   ├── app.spec.ts
-│   │   ├── app.ts
-│   │   ├── domain
-│   │   │   ├── normalize-whitespace.spec.ts
-│   │   │   ├── normalize-whitespace.ts
-│   │   │   ├── README.md
-│   │   │   └── resume
-│   │   ├── infrastructure
-│   │   │   ├── browser-file-gateway.ts
-│   │   │   ├── crypto-id-generator.ts
-│   │   │   ├── dexie-resume-repository.spec.ts
-│   │   │   ├── dexie-resume-repository.ts
-│   │   │   ├── local-storage-backup-reminder.ts
-│   │   │   ├── README.md
-│   │   │   ├── serialization
-│   │   │   └── system-clock.ts
-│   │   └── presentation
-│   │       ├── documentos
-│   │       ├── editor
-│   │       ├── exportar
-│   │       └── README.md
-│   ├── index.html
-│   ├── main.ts
-│   └── styles.css
-├── tsconfig.app.json
-├── tsconfig.json
-└── tsconfig.spec.json
+En documentos-page.html el aviso se ve desde el principio, no solo tras un rechazo: «El navegador puede borrar estos datos. El respaldo es exportar el JSON a GitHub.» Junto a él, el botón «Proteger los datos del navegador», visible mientras no esté concedido. Concedido o no, esa frase del JSON sigue en pantalla.
 
-21 directories, 58 files
+2. Maestro virgen al importar
 
+Virgen: kind === 'master', revision === 1 y el contenido que ya compara sameContent (language, layout, basics, sections) igual al de emptyMaster. El nombre y la oferta no entran: renombrar no sube revision. Si el texto se editó y se vació, revision ya no es 1 y sigue el rechazo.
+
+En classify-import.ts, si el local es virgen y el importado es un maestro con otro id, el veredicto nuevo es adopt-master. Si el local ya no es virgen, sigue reject-second-master. Un helper isVirginMaster en resume-rules.ts para no duplicar sameContent.
+
+En transfer.ts:
+
+
+
+
+
+El ítem del plan lleva removeId (el id del maestro vacío). No es un campo de Resume.
+
+
+
+La acción es replace, sin radios. El motivo: «El maestro de este navegador está vacío. Al confirmar se borra y se adopta el del archivo.»
+
+
+
+ApplyImport borra removeId y después guarda el importado. El orden importa: save de un segundo maestro lanza «Ya hay un CV maestro.» Cuenta como reemplazado. Cancelar no escribe ni borra.
+
+
+
+Tras planear esa adopción, ese maestro pasa a ser el local: un segundo maestro del mismo archivo se rechaza.
+
+Pruebas en classify-import.spec.ts y transfer.spec.ts. El test actual que rechaza un segundo maestro contra un emptyMaster local pasa a ser la adopción. Casos:
+
+
+
+
+
+Almacén con maestro virgen: al confirmar desaparece el id vacío y queda el del archivo.
+
+
+
+Maestro con contenido (revision mayor o basics distinto): rechazo, el local sigue.
+
+
+
+Las versiones del paquete se añaden con su derivedFrom original, el id del maestro del archivo.
+
+
+
+Ida y vuelta: exportar todo, repositorio nuevo (el vacío equivale a borrar IndexedDB), OpenOrCreateMaster, importar y confirmar. Vuelven el maestro (su id y su texto) y las versiones. El test de almacén vacío, sin abrir antes, sigue añadiendo los dos.
+
+3. Carpeta data/, apuntes y fecha local
+
+
+
+
+
+guia-de-uso.md: los JSON se guardan en data/ eligiendo esa carpeta en las descargas del navegador. La app no elige carpeta ni escribe archivos; solo dispara la descarga. Firefox: Ajustes, General, Descargas, Guardar archivos en, y elegir data/. Chrome: Configuración, Descargas, Ubicación, Cambiar, y la misma carpeta; sin «Preguntar dónde guardar cada archivo».
+
+
+
+Mover cv_prompt.md a docs/cv_prompt.md sin reescribirlo.
+
+
+
+bundleFileName usa el día local de exportedAt (getFullYear, getMonth, getDate), no los diez primeros caracteres UTC. exportedAt dentro del JSON sigue siendo el instante ISO. El test de 2026-02-03T04:05:06.000Z espera el día local de ese instante, calculado igual, para que valga en UTC y en UTC−5. La guía deja de decir que el nombre es UTC.
+
+4. README y estado vivo
+
+README.md corto: gestor de CV en el navegador, sin servidor ni cuentas; editor e importar/exportar JSON; sin PDF. Requisitos Node y npm (Angular avisa en Node 25; declara 22, 24 o 26+). npm install, npm start en http://localhost:4200/. Pruebas: npx ng test --watch=false y npm run lint. Enlaces a docs/guia-de-uso.md, docs/formato-json.md y docs/progreso.md.
+
+Actualizar la guía (aviso con botón, desastre: el maestro virgen se sustituye al confirmar; uno ya editado no; data/ y fecha local) y progreso.md. ng test --watch=false, npm run lint, ng build.
+
+El mensaje final explica la comprobación a mano en Firefox: npm start, abrir http://localhost:4200/documentos y ver la lista sin el cuadro de persistent storage; el aviso del JSON y el botón están ahí; solo al pulsar el botón aparece el permiso; aceptar o rechazar no deja la página en blanco.
+
+
+Luego:
+
+Las correcciones de la 5a.1 están en la rama `etapa-5a1`. No hay commit.
+
+El arranque ya no llama a `persist()`. En `/documentos` se lee siempre que el respaldo real es el JSON, y el botón «Proteger los datos del navegador» es lo único que pide ese permiso. Si el navegador lo concede, el botón desaparece y la frase sigue.
+
+Un maestro vacío (`revision` 1 y el mismo contenido que uno recién creado) se sustituye al confirmar un maestro de otro id: se borra el vacío y se adopta el id del archivo. Si el local ya tiene texto, sigue el rechazo. El nombre del paquete usa el día local. `cv_prompt.md` está en `docs/`. El README describe solo lo que la app hace hoy.
+
+`ng test --watch=false` pasó 59 pruebas, `npm run lint` pasó y `ng build` también (sigue el aviso del bundle por encima de 500 kB). En Chromium la lista aparece con el aviso y el botón sin llamar a `persist()`; el permiso solo se pide al pulsar el botón. Firefox no se abrió.
+
+Para comprobarlo a mano en Firefox:
+
+1. `npm start` y abre `http://localhost:4200/documentos`.
+2. La lista tiene que verse enseguida, con la frase del JSON y el botón. No debe aparecer «Allow localhost:4200 to store data in persistent storage?» al cargar.
+3. Pulsa «Proteger los datos del navegador». Ahí sí puede salir el permiso. Aceptar o rechazar deja la página usable: la frase del JSON sigue, y el botón solo desaparece si Firefox concede la persistencia.
+
+
+
+
+
+
+
+
+Añade algo de estilos porque ahora está todo blanco y se ve horrible (o dejalo para despues) pero ten en cuenta modo oscuro, diseño moderno, con ux y ui. y que paso con el readme .gitignore y la licencia gpl?

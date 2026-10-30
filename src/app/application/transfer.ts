@@ -13,6 +13,7 @@ export interface ImportPlanItem {
   action: ImportAction;
   resume: Resume;
   reason: string;
+  removeId: string | null;
 }
 
 export interface ImportPlan {
@@ -32,7 +33,11 @@ export function resumeFileName(resume: Resume): string {
 }
 
 export function bundleFileName(exportedAt: string): string {
-  return `match-resume-respaldo-${exportedAt.slice(0, 10)}.json`;
+  const date = new Date(exportedAt);
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `match-resume-respaldo-${year}-${month}-${day}.json`;
 }
 
 export class ExportResume {
@@ -84,7 +89,8 @@ export class PlanImport {
       throw new Error(`El archivo repite el id ${repeated}.`);
     }
     const stored = await this.resumes.list();
-    let master = stored.resumes.find((resume) => resume.meta.kind === 'master') ?? null;
+    const storedMaster = stored.resumes.find((resume) => resume.meta.kind === 'master') ?? null;
+    let master = storedMaster;
     const items: ImportPlanItem[] = [];
     for (const resume of incoming) {
       const sameId = stored.resumes.find((item) => item.meta.id === resume.meta.id) ?? null;
@@ -92,9 +98,13 @@ export class PlanImport {
         resume.meta.kind === 'master' && master && master.meta.id !== resume.meta.id
           ? master
           : sameId;
-      const verdict = classifyImport(local, resume);
-      items.push(planItem(verdict, resume));
-      if (resume.meta.kind === 'master' && verdict === 'add') {
+      let verdict = classifyImport(local, resume);
+      if (verdict === 'adopt-master' && local?.meta.id !== storedMaster?.meta.id) {
+        verdict = 'reject-second-master';
+      }
+      const removeId = verdict === 'adopt-master' && local ? local.meta.id : null;
+      items.push(planItem(verdict, resume, removeId));
+      if (resume.meta.kind === 'master' && (verdict === 'add' || verdict === 'adopt-master')) {
         master = resume;
       }
     }
@@ -115,6 +125,9 @@ export class ApplyImport {
         item.action === 'replace' ||
         (item.action === 'conflict' && replaceConflictIds.has(item.resume.meta.id))
       ) {
+        if (item.removeId) {
+          await this.resumes.delete(item.removeId);
+        }
         await this.resumes.save(item.resume);
         result.replaced += 1;
       } else if (item.action === 'reject') {
@@ -127,23 +140,30 @@ export class ApplyImport {
   }
 }
 
-function planItem(verdict: ImportClass, resume: Resume): ImportPlanItem {
+function planItem(verdict: ImportClass, resume: Resume, removeId: string | null): ImportPlanItem {
   switch (verdict) {
     case 'add':
-      return { action: 'add', resume, reason: 'No está en este navegador. Se añadirá.' };
+      return {
+        action: 'add',
+        resume,
+        reason: 'No está en este navegador. Se añadirá.',
+        removeId,
+      };
     case 'skip':
-      return { action: 'skip', resume, reason: 'Ya está y es igual. Se ignora.' };
+      return { action: 'skip', resume, reason: 'Ya está y es igual. Se ignora.', removeId };
     case 'replace-newer':
       return {
         action: 'replace',
         resume,
         reason: 'El archivo es más reciente. Se reemplazará al confirmar.',
+        removeId,
       };
     case 'keep-local-newer':
       return {
         action: 'conflict',
         resume,
         reason: 'El de este navegador es más reciente. Se conserva salvo que elijas reemplazarlo.',
+        removeId,
       };
     case 'conflict-diverged':
       return {
@@ -151,12 +171,22 @@ function planItem(verdict: ImportClass, resume: Resume): ImportPlanItem {
         resume,
         reason:
           'Tienen la misma fecha y no son iguales. Se conserva el de este navegador salvo que elijas reemplazarlo.',
+        removeId,
+      };
+    case 'adopt-master':
+      return {
+        action: 'replace',
+        resume,
+        reason:
+          'El maestro de este navegador está vacío. Al confirmar se borra y se adopta el del archivo.',
+        removeId,
       };
     case 'reject-second-master':
       return {
         action: 'reject',
         resume,
         reason: 'Ya hay un CV maestro con otro id. Este no se importa.',
+        removeId,
       };
   }
 }

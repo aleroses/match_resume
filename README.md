@@ -1,11 +1,29 @@
 # Gestor de CV
 
-Esqueleto Angular 22 de solo cliente. La interfaz está en español. Aún no hay funcionalidad de CV.
+Página en el navegador para mantener un CV y copias por oferta, y para exportar e importar JSON. No hay servidor ni cuentas. La interfaz está en español. No hay PDF.
+
+## Requisitos
+
+Node.js y npm. Angular declara soporte para Node 22, 24 o 26 o superior. En Node 25 el arranque avisa de que esa versión no está en la lista.
+
+## Uso
 
 ```bash
+npm install
 npm start
 ```
 
-Las capas están en `src/app/{domain,application,infrastructure,presentation}`. El enlace de puertos está en `src/app/app.config.ts`.
+`npm start` abre `http://localhost:4200/`.
 
-`AGENTS.md` tiene las instrucciones del proyecto. Las conclusiones del spike de PDF están en `docs/spike-pdf.md`.
+## Pruebas
+
+```bash
+npx ng test --watch=false
+npm run lint
+```
+
+## Documentación
+
+- [Guía de uso](docs/guia-de-uso.md)
+- [Formato JSON](docs/formato-json.md)
+- [Progreso](docs/progreso.md)
