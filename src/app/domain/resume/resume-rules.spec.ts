@@ -1,7 +1,13 @@
 import { Resume } from './resume';
 import {
+  addBullet,
+  addItem,
+  addSection,
   deriveVersion,
   editPosting,
+  removeBullet,
+  removeItem,
+  removeSection,
   rename,
   reorderBullets,
   reorderItems,
@@ -205,5 +211,54 @@ describe('metadatos que no son contenido', () => {
     expect(posted.meta.updatedAt).toBe(T0);
     expect(posted.meta.revision).toBe(1);
     expect(editPosting(posted, { ...posted.posting })).toBe(posted);
+  });
+});
+
+describe('añadir y quitar', () => {
+  it('añade una sección vacía y no muta el original', () => {
+    const resume = sample();
+    const next = addSection(resume, 's3', T1);
+
+    expect(next.sections.map((section) => section.id)).toEqual(['s1', 's2', 's3']);
+    expect(next.sections[2]).toEqual({ id: 's3', visible: true, title: '', items: [] });
+    expect(next.meta.updatedAt).toBe(T1);
+    expect(next.meta.revision).toBe(2);
+    expect(resume.sections).toHaveLength(2);
+    expect(resume.meta.revision).toBe(1);
+  });
+
+  it('quita una sección que no está y deja la lista vacía si era la última', () => {
+    const resume = sample();
+    expect(() => removeSection(resume, 'no', T1)).toThrow(/sección/);
+
+    const only = removeSection(removeSection(resume, 's2', T1), 's1', T1);
+    expect(only.sections).toEqual([]);
+    expect(only.meta.revision).toBe(3);
+  });
+
+  it('añade y quita un ítem y una viñeta', () => {
+    const resume = sample();
+    const withItem = addItem(resume, 's2', 'i3', T1);
+    expect(withItem.sections[1]!.items[1]).toMatchObject({
+      id: 'i3',
+      visible: true,
+      title: '',
+      start: '',
+      end: null,
+      bullets: [],
+    });
+
+    const withBullet = addBullet(withItem, 's2', 'i3', 'b4', T1);
+    expect(withBullet.sections[1]!.items[1]!.bullets).toEqual([
+      { id: 'b4', visible: true, text: '' },
+    ]);
+
+    const cleared = removeBullet(withBullet, 's2', 'i3', 'b4', T1);
+    expect(cleared.sections[1]!.items[1]!.bullets).toEqual([]);
+
+    const removed = removeItem(cleared, 's2', 'i3', T1);
+    expect(removed.sections[1]!.items.map((item) => item.id)).toEqual(['i2']);
+    expect(() => removeItem(resume, 's1', 'no', T1)).toThrow(/ítem/);
+    expect(() => removeBullet(resume, 's1', 'i1', 'no', T1)).toThrow(/viñeta/);
   });
 });

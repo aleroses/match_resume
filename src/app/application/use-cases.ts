@@ -90,3 +90,15 @@ export class DeleteVersion {
     await this.resumes.delete(id);
   }
 }
+
+export class GetResume {
+  constructor(private readonly resumes: ResumeRepository) {}
+
+  async execute(id: string): Promise<Resume> {
+    const resume = await this.resumes.get(id);
+    if (!resume) {
+      throw new Error('No está ese CV.');
+    }
+    return resume;
+  }
+}

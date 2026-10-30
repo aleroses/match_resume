@@ -73,7 +73,12 @@ export function reorderSections(resume: Resume, orderedIds: string[], at: string
   return withContent(resume, sections, at);
 }
 
-export function reorderItems(resume: Resume, sectionId: string, orderedIds: string[], at: string): Resume {
+export function reorderItems(
+  resume: Resume,
+  sectionId: string,
+  orderedIds: string[],
+  at: string,
+): Resume {
   const index = resume.sections.findIndex((section) => section.id === sectionId);
   if (index < 0) {
     throw new Error('No está esa sección.');
@@ -122,7 +127,12 @@ export function reorderBullets(
   return withContent(resume, sections, at);
 }
 
-export function setVisible(resume: Resume, target: VisibilityTarget, visible: boolean, at: string): Resume {
+export function setVisible(
+  resume: Resume,
+  target: VisibilityTarget,
+  visible: boolean,
+  at: string,
+): Resume {
   if (target.kind === 'section') {
     const index = resume.sections.findIndex((section) => section.id === target.id);
     if (index < 0) {
@@ -179,6 +189,119 @@ export function setVisible(resume: Resume, target: VisibilityTarget, visible: bo
     }
   }
   throw new Error('No está esa viñeta.');
+}
+
+export function addSection(resume: Resume, id: string, at: string): Resume {
+  return withContent(resume, resume.sections.concat(emptySection(id)), at);
+}
+
+export function removeSection(resume: Resume, id: string, at: string): Resume {
+  if (!resume.sections.some((section) => section.id === id)) {
+    throw new Error('No está esa sección.');
+  }
+  return withContent(
+    resume,
+    resume.sections.filter((section) => section.id !== id),
+    at,
+  );
+}
+
+export function addItem(resume: Resume, sectionId: string, id: string, at: string): Resume {
+  const index = sectionIndex(resume, sectionId);
+  const section = resume.sections[index]!;
+  const sections = resume.sections.slice();
+  sections[index] = { ...section, items: section.items.concat(emptyItem(id)) };
+  return withContent(resume, sections, at);
+}
+
+export function removeItem(resume: Resume, sectionId: string, id: string, at: string): Resume {
+  const index = sectionIndex(resume, sectionId);
+  const section = resume.sections[index]!;
+  if (!section.items.some((item) => item.id === id)) {
+    throw new Error('No está ese ítem.');
+  }
+  const sections = resume.sections.slice();
+  sections[index] = { ...section, items: section.items.filter((item) => item.id !== id) };
+  return withContent(resume, sections, at);
+}
+
+export function addBullet(
+  resume: Resume,
+  sectionId: string,
+  itemId: string,
+  id: string,
+  at: string,
+): Resume {
+  const located = locateItem(resume, sectionId, itemId);
+  const bullets = located.item.bullets.concat(emptyBullet(id));
+  return replaceItem(resume, located, { ...located.item, bullets }, at);
+}
+
+export function removeBullet(
+  resume: Resume,
+  sectionId: string,
+  itemId: string,
+  id: string,
+  at: string,
+): Resume {
+  const located = locateItem(resume, sectionId, itemId);
+  if (!located.item.bullets.some((bullet) => bullet.id === id)) {
+    throw new Error('No está esa viñeta.');
+  }
+  const bullets = located.item.bullets.filter((bullet) => bullet.id !== id);
+  return replaceItem(resume, located, { ...located.item, bullets }, at);
+}
+
+function emptySection(id: string): Resume['sections'][number] {
+  return { id, visible: true, title: '', items: [] };
+}
+
+function emptyItem(id: string): Resume['sections'][number]['items'][number] {
+  return {
+    id,
+    visible: true,
+    title: '',
+    organization: '',
+    location: '',
+    start: '',
+    end: null,
+    bullets: [],
+  };
+}
+
+function emptyBullet(id: string): Resume['sections'][number]['items'][number]['bullets'][number] {
+  return { id, visible: true, text: '' };
+}
+
+function sectionIndex(resume: Resume, sectionId: string): number {
+  const index = resume.sections.findIndex((section) => section.id === sectionId);
+  if (index < 0) {
+    throw new Error('No está esa sección.');
+  }
+  return index;
+}
+
+function locateItem(resume: Resume, sectionId: string, itemId: string) {
+  const sectionAt = sectionIndex(resume, sectionId);
+  const section = resume.sections[sectionAt]!;
+  const itemAt = section.items.findIndex((item) => item.id === itemId);
+  if (itemAt < 0) {
+    throw new Error('No está ese ítem.');
+  }
+  return { sectionAt, section, itemAt, item: section.items[itemAt]! };
+}
+
+function replaceItem(
+  resume: Resume,
+  located: ReturnType<typeof locateItem>,
+  item: Resume['sections'][number]['items'][number],
+  at: string,
+): Resume {
+  const items = located.section.items.slice();
+  items[located.itemAt] = item;
+  const sections = resume.sections.slice();
+  sections[located.sectionAt] = { ...located.section, items };
+  return withContent(resume, sections, at);
 }
 
 function withContent(resume: Resume, sections: Resume['sections'], at: string): Resume {

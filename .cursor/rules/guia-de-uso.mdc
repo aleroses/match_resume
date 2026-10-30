@@ -1,0 +1,11 @@
+---
+description: Mantener docs/guia-de-uso.md cuando cambie lo que se ve
+alwaysApply: true
+---
+
+# Guía de uso
+
+Si un cambio altera lo que la app hace en pantalla (textos, botones, avisos, importar, exportar o rutas visibles), actualiza `docs/guia-de-uso.md` en el mismo cambio.
+
+- Escribe solo el comportamiento que quedó. Quita lo que ya no es cierto.
+- No añadas capturas ni pasos que no hayas comprobado.

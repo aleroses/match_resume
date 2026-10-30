@@ -1,7 +1,14 @@
 import { Clock } from './clock';
 import { IdGenerator } from './id-generator';
 import { InMemoryResumeRepository } from './testing/in-memory-resume-repository';
-import { DeleteVersion, DeriveVersion, ListResumes, OpenOrCreateMaster, SaveResume } from './use-cases';
+import {
+  DeleteVersion,
+  DeriveVersion,
+  GetResume,
+  ListResumes,
+  OpenOrCreateMaster,
+  SaveResume,
+} from './use-cases';
 
 const T0 = '2026-01-02T03:04:05.000Z';
 const T1 = '2026-02-03T04:05:06.000Z';
@@ -43,6 +50,7 @@ function setup(time = T0) {
     derive: new DeriveVersion(resumes, ids, clock),
     save: new SaveResume(resumes, clock),
     remove: new DeleteVersion(resumes),
+    get: new GetResume(resumes),
   };
 }
 
@@ -59,7 +67,9 @@ describe('documentos', () => {
     expect(first.sections).toEqual([]);
     expect((await list.execute()).resumes).toHaveLength(1);
 
-    await expect(save.execute({ ...first, meta: { ...first.meta, id: 'otro' } })).rejects.toThrow(/maestro/);
+    await expect(save.execute({ ...first, meta: { ...first.meta, id: 'otro' } })).rejects.toThrow(
+      /maestro/,
+    );
   });
 
   it('derivar conserva los ids de elementos y no toca el maestro', async () => {
@@ -105,10 +115,14 @@ describe('documentos', () => {
     const version = await derive.execute(master.meta.id);
 
     await expect(remove.execute(master.meta.id)).rejects.toThrow(/maestro/);
-    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toContain(master.meta.id);
+    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toContain(
+      master.meta.id,
+    );
 
     await remove.execute(version.meta.id);
-    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toEqual([master.meta.id]);
+    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toEqual([
+      master.meta.id,
+    ]);
     await expect(remove.execute(version.meta.id)).rejects.toThrow(/No está/);
   });
 
@@ -149,7 +163,12 @@ describe('documentos', () => {
     await resumes.save(newer);
     await resumes.save(tied);
 
-    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toEqual(['a', 'c', 'b', master.meta.id]);
+    expect((await list.execute()).resumes.map((resume) => resume.meta.id)).toEqual([
+      'a',
+      'c',
+      'b',
+      master.meta.id,
+    ]);
   });
 
   it('guardar sin cambio de contenido no mueve updatedAt', async () => {
@@ -157,14 +176,23 @@ describe('documentos', () => {
     const master = await open.execute();
     clock.advance(T2);
 
-    const renamed = await save.execute({ ...master, meta: { ...master.meta, name: 'Otro nombre' } });
+    const renamed = await save.execute({
+      ...master,
+      meta: { ...master.meta, name: 'Otro nombre' },
+    });
     expect(renamed.meta.name).toBe('Otro nombre');
     expect(renamed.meta.updatedAt).toBe(T0);
     expect(renamed.meta.revision).toBe(1);
 
     const posted = await save.execute({
       ...renamed,
-      posting: { company: 'Acme', title: 'Dev', status: 'applied', postingText: 'Texto', pdfFile: 'acme.pdf' },
+      posting: {
+        company: 'Acme',
+        title: 'Dev',
+        status: 'applied',
+        postingText: 'Texto',
+        pdfFile: 'acme.pdf',
+      },
     });
     expect(posted.meta.updatedAt).toBe(T0);
     expect(posted.meta.revision).toBe(1);
@@ -179,5 +207,12 @@ describe('documentos', () => {
     expect(edited.meta.revision).toBe(2);
     expect(edited.meta.createdAt).toBe(T0);
     expect((await resumes.get(master.meta.id))?.meta.updatedAt).toBe(T2);
+  });
+
+  it('lee un CV por id y falla si no está', async () => {
+    const { open, get } = setup();
+    const master = await open.execute();
+    expect(await get.execute(master.meta.id)).toEqual(master);
+    await expect(get.execute('no-esta')).rejects.toThrow(/No está/);
   });
 });

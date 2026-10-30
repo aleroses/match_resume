@@ -1,12 +1,13 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ImportResult } from '../../application/transfer';
 import { Resume } from '../../domain/resume/resume';
 import { DocumentosStore } from './documentos-store';
 
 @Component({
   selector: 'app-documentos',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './documentos-page.html',
   styleUrl: './documentos-page.css',
 })

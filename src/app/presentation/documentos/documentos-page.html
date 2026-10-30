@@ -104,6 +104,7 @@
         }
         <p>Modificado: {{ resume.meta.updatedAt | date: 'd MMM y, HH:mm' }}</p>
         <div class="acciones">
+          <a [routerLink]="['/editor', resume.meta.id]">Editar</a>
           <button type="button" (click)="exportOne(resume.meta.id)" [disabled]="store.busy()">
             Exportar
           </button>

@@ -19,6 +19,7 @@ import { ApplyImport, ExportAll, ExportResume, PlanImport } from './application/
 import {
   DeleteVersion,
   DeriveVersion,
+  GetResume,
   ListResumes,
   OpenOrCreateMaster,
   SaveResume,
@@ -62,6 +63,7 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => new SaveResume(inject(ResumeRepository), inject(Clock)),
     },
     { provide: DeleteVersion, useFactory: () => new DeleteVersion(inject(ResumeRepository)) },
+    { provide: GetResume, useFactory: () => new GetResume(inject(ResumeRepository)) },
     {
       provide: ExportResume,
       useFactory: () =>
